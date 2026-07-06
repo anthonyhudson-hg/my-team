@@ -79,7 +79,13 @@
   background: var(--header-bg);
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  z-index: 10;
+  /* Above .menu-backdrop/.menu (40/50, components.css) so a dropdown menu
+     anchored inside the header — e.g. the "..." menu — isn't visually
+     covered by its own click-outside backdrop, which escapes to the root
+     stacking context via position:fixed and would otherwise out-rank this
+     header's local stacking context. Still below the command palette (90),
+     coach mark (75), splash (200), and update banner (220). */
+  z-index: 45;
 }
 
 .section-scroll {

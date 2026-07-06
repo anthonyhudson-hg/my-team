@@ -71,8 +71,7 @@ export function createGeneralPanel({ onOpenCeo, onOpenSettings }) {
       ]),
       el('div', { style: 'display:flex;align-items:center;gap:2px;' }, [
         el('div', { class: 'icon-btn icon-btn-md', style: 'display:flex;gap:6px;width:auto;padding:0 11px;' }, [icon('users', 'font-size:16px;'), el('span', { style: 'font-size:13px;font-weight:600;', text: '1' })]),
-        el('button', { class: 'icon-btn icon-btn-md', type: 'button' }, [icon('headset', 'font-size:17px;')]),
-        el('button', { class: 'icon-btn icon-btn-md', type: 'button' }, [icon('info', 'font-size:17px;')]),
+        el('button', { class: 'icon-btn icon-btn-md', type: 'button', disabled: true, title: 'Voice support — coming soon' }, [icon('headset', 'font-size:17px;')]),
         el('button', { class: 'icon-btn icon-btn-md', type: 'button' }, [icon('dots-three', 'font-size:18px;')]),
       ]),
     ]),

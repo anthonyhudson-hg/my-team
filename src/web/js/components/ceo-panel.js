@@ -10,9 +10,28 @@ import { buildTimeline, ONBOARDING_KICKOFF_MESSAGE } from '../timeline.js';
 
 const SKIP_MESSAGE = "Let's skip this for now — I can come back to it later.";
 
-export function createCeoPanel({ onOpenSettings }) {
+export function createCeoPanel({ onConfigureEmployee }) {
   const headerAvatar = el('div', { class: 'avatar avatar-ada', style: 'width:26px;height:26px;font-size:12px;', text: 'A' });
   const headerName = el('span', { style: 'font-size:16px;font-weight:800;color:var(--text);', text: 'your AI CEO' });
+
+  let moreMenuOpen = false;
+  const moreMenu = el('div', { class: 'menu', style: 'top:calc(100% + 6px);right:0;width:200px;', hidden: true }, [
+    el('div', { class: 'menu-item', onclick: () => { closeMoreMenu(); onConfigureEmployee(); } }, [
+      icon('sliders', 'font-size:15px;color:var(--accent);width:18px;text-align:center;flex:0 0 auto;'),
+      el('div', { class: 'menu-item-title', text: 'Configure Employee' }),
+    ]),
+  ]);
+  const moreBackdrop = el('div', { class: 'menu-backdrop', hidden: true, onclick: closeMoreMenu });
+  function toggleMoreMenu() {
+    moreMenuOpen = !moreMenuOpen;
+    moreMenu.hidden = !moreMenuOpen;
+    moreBackdrop.hidden = !moreMenuOpen;
+  }
+  function closeMoreMenu() {
+    moreMenuOpen = false;
+    moreMenu.hidden = true;
+    moreBackdrop.hidden = true;
+  }
 
   const introAvatar = el('div', { class: 'avatar avatar-ada', style: 'position:relative;width:64px;height:64px;font-size:26px;border-radius:19px;margin-bottom:15px;', text: 'A' }, [
     el('span', { class: 'avatar-dot avatar-dot-ada', style: 'right:-4px;bottom:-4px;width:22px;height:22px;border:3px solid var(--content-bg);display:flex;align-items:center;justify-content:center;' }, [icon('sparkle', 'font-size:11px;color:#fff;')]),
@@ -53,12 +72,14 @@ export function createCeoPanel({ onOpenSettings }) {
         el('span', { style: 'font-size:13px;color:var(--muted);', text: 'CEO · always around' }),
       ]),
       el('div', { style: 'display:flex;align-items:center;gap:2px;' }, [
-        el('div', { class: 'icon-btn icon-btn-md', style: 'display:flex;gap:6px;width:auto;padding:0 11px;' }, [icon('users', 'font-size:16px;'), el('span', { style: 'font-size:13px;font-weight:600;', text: '1' })]),
-        el('button', { class: 'icon-btn icon-btn-md', type: 'button' }, [icon('headset', 'font-size:17px;')]),
-        el('button', { class: 'icon-btn icon-btn-md', type: 'button' }, [icon('info', 'font-size:17px;')]),
-        el('button', { class: 'icon-btn icon-btn-md', type: 'button' }, [icon('dots-three', 'font-size:18px;')]),
+        el('button', { class: 'icon-btn icon-btn-md', type: 'button', disabled: true, title: 'Voice support — coming soon' }, [icon('headset', 'font-size:17px;')]),
+        el('div', { style: 'position:relative;' }, [
+          el('button', { class: 'icon-btn icon-btn-md', type: 'button', onclick: toggleMoreMenu }, [icon('dots-three', 'font-size:18px;')]),
+          moreMenu,
+        ]),
       ]),
     ]),
+    moreBackdrop,
     scroll,
     el('div', { id: 'composer-area' }, [chipsRow, composer.el]),
   ]);

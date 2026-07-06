@@ -4,6 +4,7 @@ import { createCeoPanel } from './components/ceo-panel.js';
 import { createCoachMark } from './components/coach-mark.js';
 import { createCommandPalette } from './components/command-palette.js';
 import { createActivityPanel, createFilesPanel } from './components/empty-pages.js';
+import { createEmployeeConfigPanel } from './components/employee-config.js';
 import { createGeneralPanel } from './components/general-panel.js';
 import { createHomePanel } from './components/home.js';
 import { createRail } from './components/rail.js';
@@ -28,14 +29,15 @@ const sidebar = createSidebar({
   onOpenSettings: () => navigateSection('settings'),
 });
 const generalPanel = createGeneralPanel({ onOpenCeo: () => navigateView('ceo'), onOpenSettings: () => navigateSection('settings') });
-const ceoPanel = createCeoPanel({});
+const ceoPanel = createCeoPanel({ onConfigureEmployee: () => navigateSection('employee-config') });
 const homePanel = createHomePanel({ onOpenPalette: () => palette.open(), onGoGeneral: () => navigateView('general'), onGoCeo: () => navigateView('ceo') });
 const settingsPanel = createSettingsPanel({ onDone: () => navigateSection('chats'), onReset: doReset });
 const activityPanel = createActivityPanel();
 const filesPanel = createFilesPanel();
+const employeeConfigPanel = createEmployeeConfigPanel({ onDone: () => navigateSection('chats') });
 
 const chatsBlock = el('div', { style: 'display:flex;flex:1;min-width:0;' }, [sidebar.el, generalPanel.el, ceoPanel.el]);
-const rightArea = el('div', { id: 'right-area' }, [chatsBlock, homePanel.el, settingsPanel.el, activityPanel, filesPanel]);
+const rightArea = el('div', { id: 'right-area' }, [chatsBlock, homePanel.el, settingsPanel.el, activityPanel, filesPanel, employeeConfigPanel.el]);
 
 mount(document.getElementById('window'), [rail.el, rightArea, coachMark.el, palette.el, updateBanner.el, authGate.el, splash.el]);
 
@@ -63,12 +65,15 @@ function navigateSection(section) {
   settingsPanel.el.hidden = section !== 'settings';
   activityPanel.hidden = section !== 'activity';
   filesPanel.hidden = section !== 'files';
+  employeeConfigPanel.el.hidden = section !== 'employee-config';
   palette.close();
 
   if (section === 'home') {
     homePanel.update({ ...profileFields(), hasSentToCeo: ceoPanel.hasSentMessage(), hasGeneralMessage: generalPanel.hasSentMessage() });
   } else if (section === 'settings') {
     loadSettings();
+  } else if (section === 'employee-config') {
+    employeeConfigPanel.update({ ceoName: profileFields().ceoName });
   }
 }
 
