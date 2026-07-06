@@ -1,6 +1,6 @@
 {
   "name": "@harborgroup/my-team",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Chat with your local Claude Code subscription from a web dashboard, scoped to the current repo. Dev-only.",
   "type": "module",
   "bin": {

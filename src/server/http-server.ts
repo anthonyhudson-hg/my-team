@@ -7,6 +7,7 @@ import { npmInstall } from '../npm-install.js';
 import { checkAuth } from './auth-check.js';
 import { readHistory } from './chat-history.js';
 import { ChatSession } from './chat-session.js';
+import { getFileDetail, getGitInfo, isSafeRelativePath, listFiles } from './files.js';
 import { appendGeneralMessage, readGeneralHistory } from './general-history.js';
 import type { Logger } from './logger.js';
 import { readProfile, validateProfileInput, writeProfile } from './profile.js';
@@ -182,6 +183,24 @@ export function createServer(options: CreateServerOptions): http.Server {
       const message = { name, text, ts: new Date().toISOString() };
       await appendGeneralMessage(cwd, message);
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true, message }));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/files') {
+      const files = listFiles(cwd);
+      const git = getGitInfo(cwd);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ files, git }));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/files/detail') {
+      const relPath = url.searchParams.get('path') ?? '';
+      if (!isSafeRelativePath(relPath)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'invalid path' }));
+        return;
+      }
+      const detail = getFileDetail(cwd, relPath);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(detail));
       return;
     }
 

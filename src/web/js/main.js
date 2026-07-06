@@ -3,8 +3,9 @@ import { createAuthGate } from './components/auth-gate.js';
 import { createCeoPanel } from './components/ceo-panel.js';
 import { createCoachMark } from './components/coach-mark.js';
 import { createCommandPalette } from './components/command-palette.js';
-import { createActivityPanel, createFilesPanel } from './components/empty-pages.js';
+import { createActivityPanel } from './components/empty-pages.js';
 import { createEmployeeConfigPanel } from './components/employee-config.js';
+import { createFilesPanel } from './components/files.js';
 import { createGeneralPanel } from './components/general-panel.js';
 import { createHomePanel } from './components/home.js';
 import { createRail } from './components/rail.js';
@@ -33,11 +34,11 @@ const ceoPanel = createCeoPanel({ onConfigureEmployee: () => navigateSection('em
 const homePanel = createHomePanel({ onOpenPalette: () => palette.open(), onGoGeneral: () => navigateView('general'), onGoCeo: () => navigateView('ceo') });
 const settingsPanel = createSettingsPanel({ onDone: () => navigateSection('chats'), onReset: doReset });
 const activityPanel = createActivityPanel();
-const filesPanel = createFilesPanel();
+const filesPanel = createFilesPanel({ onOpenCeo: () => navigateView('ceo') });
 const employeeConfigPanel = createEmployeeConfigPanel({ onDone: () => navigateSection('chats') });
 
 const chatsBlock = el('div', { style: 'display:flex;flex:1;min-width:0;' }, [sidebar.el, generalPanel.el, ceoPanel.el]);
-const rightArea = el('div', { id: 'right-area' }, [chatsBlock, homePanel.el, settingsPanel.el, activityPanel, filesPanel, employeeConfigPanel.el]);
+const rightArea = el('div', { id: 'right-area' }, [chatsBlock, homePanel.el, settingsPanel.el, activityPanel, filesPanel.el, employeeConfigPanel.el]);
 
 mount(document.getElementById('window'), [rail.el, rightArea, coachMark.el, palette.el, updateBanner.el, authGate.el, splash.el]);
 
@@ -46,6 +47,13 @@ let uiPrefsData = null;
 let metaData = null;
 let currentSection = 'chats';
 let currentView = 'general';
+// The initial status-check + dashboard load spawns a real Claude CLI process
+// and can take several real seconds - long enough for the user to click a
+// rail/sidebar item before it resolves. Without this guard, loadDashboard's
+// own default-view navigation at the end would silently stomp over wherever
+// the user had already navigated to in the meantime.
+let isLoadingDashboard = false;
+let navigatedDuringLoad = false;
 
 function profileFields() {
   const profile = statusData?.profile;
@@ -58,13 +66,14 @@ function profileFields() {
 }
 
 function navigateSection(section) {
+  if (isLoadingDashboard) navigatedDuringLoad = true;
   currentSection = section;
   rail.setActive(section);
   chatsBlock.hidden = section !== 'chats';
   homePanel.el.hidden = section !== 'home';
   settingsPanel.el.hidden = section !== 'settings';
   activityPanel.hidden = section !== 'activity';
-  filesPanel.hidden = section !== 'files';
+  filesPanel.el.hidden = section !== 'files';
   employeeConfigPanel.el.hidden = section !== 'employee-config';
   palette.close();
 
@@ -74,6 +83,9 @@ function navigateSection(section) {
     loadSettings();
   } else if (section === 'employee-config') {
     employeeConfigPanel.update({ ceoName: profileFields().ceoName });
+  } else if (section === 'files') {
+    filesPanel.setProfile(profileFields());
+    filesPanel.load();
   }
 }
 
@@ -109,7 +121,7 @@ function paletteItems() {
 async function loadSettings() {
   const [profileRes, prefsRes] = await Promise.all([api.profile.get(), api.uiPrefs.get()]);
   uiPrefsData = prefsRes.body.prefs;
-  settingsPanel.load({ profile: profileRes.body.profile, accountInfo: statusData.accountInfo, models: statusData.models, uiPrefs: uiPrefsData, meta: metaData });
+  settingsPanel.load({ profile: profileRes.body.profile, accountInfo: statusData?.accountInfo, models: statusData?.models ?? [], uiPrefs: uiPrefsData, meta: metaData });
 }
 
 async function doReset() {
@@ -158,16 +170,23 @@ async function loadDashboard() {
     onSavePrefs: saveUiPrefs,
   });
 
-  navigateSection('chats');
-  navigateView('general');
+  if (!navigatedDuringLoad) {
+    navigateSection('chats');
+    navigateView('general');
+  }
 
-  if (!onboardingComplete && !uiPrefsData.coachDismissed) coachMark.show(ceoName);
+  if (!onboardingComplete && !uiPrefsData.coachDismissed && currentSection === 'chats' && currentView === 'general') {
+    coachMark.show(ceoName);
+  }
   updateBanner.checkForUpdate();
 }
 
 async function checkStatus() {
+  isLoadingDashboard = true;
+  navigatedDuringLoad = false;
   const { body } = await api.status();
   if (!body.ok) {
+    isLoadingDashboard = false;
     authGate.hide();
     if (body.reason === 'cli-missing') authGate.showCliMissing();
     else authGate.showNotAuthenticated();
@@ -177,6 +196,7 @@ async function checkStatus() {
   authGate.hide();
   statusData = body;
   await loadDashboard();
+  isLoadingDashboard = false;
   splash.hide();
 }
 

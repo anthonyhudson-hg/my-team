@@ -35,4 +35,8 @@ export const api = {
     history: () => requestJson('/api/general/history'),
     send: (text, name) => postJson('/api/general', { text, name }),
   },
+  files: {
+    list: () => requestJson('/api/files'),
+    detail: (relPath) => requestJson(`/api/files/detail?path=${encodeURIComponent(relPath)}`),
+  },
 };
