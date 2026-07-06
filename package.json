@@ -4,7 +4,7 @@
   "description": "Chat with your local Claude Code subscription from a web dashboard, scoped to the current repo. Dev-only.",
   "type": "module",
   "bin": {
-    "my-team": "./dist/cli.js"
+    "my-team": "dist/cli.js"
   },
   "files": [
     "dist"
