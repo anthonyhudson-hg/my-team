@@ -9,6 +9,7 @@ import { readHistory } from './chat-history.js';
 import { ChatSession } from './chat-session.js';
 import type { Logger } from './logger.js';
 import { readProfile, validateProfileInput, writeProfile } from './profile.js';
+import { resetInstance } from './reset.js';
 import { tokensMatch } from './token.js';
 import type { UpdateInfo } from './update-check.js';
 
@@ -131,6 +132,17 @@ export function createServer(options: CreateServerOptions): http.Server {
         return;
       }
       await writeProfile(cwd, validated);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/reset') {
+      if (chatSession.isBusy()) {
+        res.writeHead(409, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'busy' }));
+        return;
+      }
+      await resetInstance(cwd);
+      chatSession.reset();
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
       return;
     }

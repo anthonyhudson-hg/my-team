@@ -35,6 +35,11 @@ export class ChatSession {
     return this.turnInFlight;
   }
 
+  /** Drops the resumed SDK session id so the next turn starts a brand-new Claude session, not a continuation of one whose profile/history just got wiped. */
+  reset(): void {
+    this.sessionId = undefined;
+  }
+
   async *sendTurn(message: string, cwd: string, overrides: ChatTurnOverrides = {}): AsyncGenerator<ChatEvent> {
     if (this.turnInFlight) {
       yield { type: 'error', message: 'A previous turn is still in progress.' };

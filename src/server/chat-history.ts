@@ -24,7 +24,7 @@ export type HistoryEntry =
   | { kind: 'tool'; name: string; ts: string }
   | { kind: 'error'; message: string; ts: string };
 
-function getHistoryPath(cwd: string): string {
+export function getHistoryPath(cwd: string): string {
   return path.join(getProfileDir(cwd), 'chat-history.jsonl');
 }
 

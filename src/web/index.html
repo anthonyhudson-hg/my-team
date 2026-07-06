@@ -182,6 +182,20 @@
           <span class="settings-label">Log file</span>
           <code id="settings-log-path" class="settings-value"></code>
         </div>
+
+        <div class="settings-danger-zone">
+          <h2>Danger zone</h2>
+          <p class="muted">Deletes the company profile and chat history for this repo, and starts onboarding over from scratch &mdash; like a fresh install. This can't be undone.</p>
+          <button id="reset-button" type="button" class="danger-button">Reset to factory settings</button>
+          <div id="reset-confirm" hidden>
+            <p class="reset-confirm-text">Are you sure? This deletes everything for this repo and can't be undone.</p>
+            <div class="profile-form-buttons">
+              <button id="reset-confirm-yes" type="button" class="danger-button">Yes, reset everything</button>
+              <button id="reset-confirm-cancel" type="button">Cancel</button>
+            </div>
+            <p id="reset-error" class="reset-error" hidden></p>
+          </div>
+        </div>
       </div>
     </div>
     </div>

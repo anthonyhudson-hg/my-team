@@ -58,6 +58,10 @@ The visible conversation — not just Claude's own session context — is persis
 
 This dashboard is itself an ordinary Node process running inside the repo it manages. If your CEO ever needs to restart a dev server, broadly killing every node process (`taskkill /F /IM node.exe`, `killall node`) would take the dashboard down with it — so the system prompt explicitly warns against that and points at `.my-team/server.pid` (also gitignored) to identify and exclude the dashboard's own process. The server also logs and continues past uncaught exceptions rather than crashing the whole session.
 
+## Resetting
+
+The Settings page has a "Reset to factory settings" button (behind a confirmation step) that deletes `.my-team/profile.json` and `.my-team/chat-history.jsonl` and drops the resumed Claude session, so the very next message starts fresh onboarding — no restart needed, no leftover context from the old profile.
+
 ## Status
 
-v1.6: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets + persisted chat history + dev-server-restart safety guardrail. No multi-user support, no `#general` backend (sidebar placeholder only).
+v1.7: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets + persisted chat history + dev-server-restart safety guardrail + factory reset. No multi-user support, no `#general` backend (sidebar placeholder only).

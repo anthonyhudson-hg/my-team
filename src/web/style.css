@@ -20,6 +20,8 @@
   --online: #29b874;
   --typing: #e8ab2e;
   --offline: #6b6c80;
+  --danger: #d13438;
+  --danger-hover: #b32b2f;
   --shadow: 0 1px 2px rgba(16, 15, 28, 0.04), 0 8px 24px rgba(16, 15, 28, 0.06);
 }
 
@@ -34,6 +36,8 @@
     --accent-hover: #948dff;
     --banner-bg: #352a0c;
     --banner-fg: #f0c063;
+    --danger: #f0605f;
+    --danger-hover: #f57f7e;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.35);
   }
 }
@@ -887,4 +891,44 @@ code.settings-value {
   background: var(--bg-subtle);
   padding: 0.3rem 0.5rem;
   border-radius: 6px;
+}
+
+.settings-danger-zone {
+  margin-top: 2rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.settings-danger-zone h2 {
+  font-size: 0.95rem;
+  color: var(--danger);
+  margin: 0 0 0.4rem;
+}
+
+.settings-danger-zone > p.muted {
+  margin: 0 0 0.9rem;
+  max-width: 480px;
+}
+
+.danger-button {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.danger-button:hover {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.reset-confirm-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.reset-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
 }

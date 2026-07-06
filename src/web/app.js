@@ -59,6 +59,12 @@ const el = {
 
   settingsAccount: document.getElementById('settings-account'),
   settingsLogPath: document.getElementById('settings-log-path'),
+
+  resetButton: document.getElementById('reset-button'),
+  resetConfirm: document.getElementById('reset-confirm'),
+  resetConfirmYes: document.getElementById('reset-confirm-yes'),
+  resetConfirmCancel: document.getElementById('reset-confirm-cancel'),
+  resetError: document.getElementById('reset-error'),
 };
 
 let lastProfile = null;
@@ -250,6 +256,36 @@ el.updateBannerButton.addEventListener('click', async () => {
 
 el.updateBannerDismiss.addEventListener('click', () => {
   el.updateBanner.hidden = true;
+});
+
+el.resetButton.addEventListener('click', () => {
+  el.resetButton.hidden = true;
+  el.resetConfirm.hidden = false;
+});
+
+el.resetConfirmCancel.addEventListener('click', () => {
+  el.resetConfirm.hidden = true;
+  el.resetButton.hidden = false;
+  el.resetError.hidden = true;
+});
+
+el.resetConfirmYes.addEventListener('click', async () => {
+  el.resetConfirmYes.disabled = true;
+  el.resetConfirmYes.textContent = 'Resetting…';
+  el.resetError.hidden = true;
+  try {
+    const res = await api('/api/reset', { method: 'POST' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error === 'busy' ? 'Still responding to a message — try again in a moment.' : 'Reset failed — check the terminal for details.');
+    }
+    location.reload();
+  } catch (err) {
+    el.resetConfirmYes.disabled = false;
+    el.resetConfirmYes.textContent = 'Yes, reset everything';
+    el.resetError.textContent = err.message;
+    el.resetError.hidden = false;
+  }
 });
 
 function selectPage(page) {
