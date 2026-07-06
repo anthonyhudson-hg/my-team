@@ -32,8 +32,20 @@ The first time you run `npm run team` in a repo, Claude opens the conversation i
 
 ## Interface
 
-A Slack-style shell: a `#general` channel (placeholder for now) and a DM with your CEO in the sidebar, real token-by-token streaming (via the SDK's `includePartialMessages`), a typing indicator, and a status dot on the CEO's avatar reflecting connection state. It's plain static HTML/CSS/JS talking to the backend over local HTTP + SSE — no browser-only assumptions — so a future native (Tauri) shell can point at the same server without a rewrite; there's no Tauri wrapper yet.
+An icon rail (Home / Messages / Profile / Settings) plus a Slack-style Messages page: a `#general` channel (placeholder for now) and a DM with your CEO, real token-by-token streaming (via the SDK's `includePartialMessages`), a typing indicator, and a status dot on the CEO's avatar reflecting connection state. It's plain static HTML/CSS/JS talking to the backend over local HTTP + SSE — no browser-only assumptions — so a future native (Tauri) shell can point at the same server without a rewrite; there's no Tauri wrapper yet.
+
+## Model & effort
+
+Set a default model and reasoning effort for your CEO on the Profile page (fetched live from the SDK's `supportedModels()` — the effort dropdown only ever offers levels the chosen model actually supports, e.g. Haiku offers none). Override either per message from a small selector above the chat input; each response shows a small badge with the model actually used.
+
+## Updates
+
+On startup, `my-team` checks the npm registry in the background for a newer published version. If one exists, a banner appears with an "Update" button that runs the install for you (`npm install --save-dev` the new version) — restart `npm run team` afterward to pick it up. No auto-restart; that's a deliberate simplicity/safety tradeoff over self-respawning the running server process.
+
+## Logs
+
+Every raw request sent to the Claude Agent SDK (including the exact system prompt) and every raw message it streams back is logged verbatim to a JSON-lines file, one per `npm run team` run, under `~/.my-team/logs/` (outside the repo — old runs beyond a retention count are pruned automatically). The current run's log path is printed on startup and shown on the Settings page.
 
 ## Status
 
-v1.3: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming. No persisted chat history across restarts, no multi-user support, no `#general` backend (sidebar placeholder only).
+v1.4: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging. No persisted chat history across restarts, no multi-user support, no `#general` backend (sidebar placeholder only).

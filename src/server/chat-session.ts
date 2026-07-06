@@ -4,11 +4,16 @@ import { forLog, type Logger } from './logger.js';
 import { formatProfileForSystemPrompt, getOnboardingSystemPrompt, readProfile } from './profile.js';
 
 export type ChatEvent =
-  | { type: 'meta'; sessionId: string }
+  | { type: 'meta'; sessionId: string; model: string; effort: string }
   | { type: 'text-delta'; text: string }
   | { type: 'tool-use'; name: string }
   | { type: 'done' }
   | { type: 'error'; message: string };
+
+export interface ChatTurnOverrides {
+  model?: string;
+  effort?: string;
+}
 
 /**
  * One ongoing SDK session per running server process. Conversation history
@@ -25,7 +30,7 @@ export class ChatSession {
     return this.turnInFlight;
   }
 
-  async *sendTurn(message: string, cwd: string): AsyncGenerator<ChatEvent> {
+  async *sendTurn(message: string, cwd: string, overrides: ChatTurnOverrides = {}): AsyncGenerator<ChatEvent> {
     if (this.turnInFlight) {
       yield { type: 'error', message: 'A previous turn is still in progress.' };
       return;
@@ -37,6 +42,10 @@ export class ChatSession {
       const systemPromptAppend = onboarded
         ? formatProfileForSystemPrompt(profile)
         : getOnboardingSystemPrompt(cwd);
+      // Per-message override wins, then the CEO's configured default, then no
+      // override at all (Claude Code picks its own default).
+      const model = overrides.model || profile?.defaultModel || undefined;
+      const effort = overrides.effort || profile?.defaultEffort || undefined;
       const options = {
         cwd,
         env: sanitizeEnv(process.env),
@@ -44,6 +53,8 @@ export class ChatSession {
         includePartialMessages: true,
         ...(this.sessionId ? { resume: this.sessionId } : {}),
         systemPrompt: { type: 'preset' as const, preset: 'claude_code' as const, append: systemPromptAppend },
+        ...(model ? { model } : {}),
+        ...(effort ? { effort: effort as 'low' | 'medium' | 'high' | 'xhigh' | 'max' } : {}),
       };
       this.logger.log({ type: 'chat-request', message, options: forLog(options) });
       const q = query({ prompt: message, options });
@@ -52,7 +63,12 @@ export class ChatSession {
         this.logger.log({ type: 'chat-sdk-message', message: msg });
         if (msg.type === 'system' && msg.subtype === 'init') {
           this.sessionId = msg.session_id;
-          yield { type: 'meta', sessionId: msg.session_id };
+          // msg.model reflects what the SDK actually resolved and used for
+          // this turn; effort isn't echoed back on the message stream, so we
+          // report what we requested (the UI only ever offers effort levels
+          // the chosen model's own supportedEffortLevels confirms are valid,
+          // so a silent downgrade in practice shouldn't occur).
+          yield { type: 'meta', sessionId: msg.session_id, model: msg.model, effort: effort ?? '' };
         } else if (msg.type === 'stream_event') {
           const event = msg.event;
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {

@@ -1,9 +1,9 @@
-import { query, type AccountInfo } from '@anthropic-ai/claude-agent-sdk';
+import { query, type AccountInfo, type ModelInfo } from '@anthropic-ai/claude-agent-sdk';
 import { sanitizeEnv } from './env.js';
 import { forLog, type Logger } from './logger.js';
 
 export type AuthCheckResult =
-  | { ok: true; accountInfo: AccountInfo }
+  | { ok: true; accountInfo: AccountInfo; models: ModelInfo[] }
   | { ok: false; reason: 'cli-missing' }
   | { ok: false; reason: 'not-authenticated' };
 
@@ -33,14 +33,16 @@ export async function checkAuth(cwd: string, logger: Logger): Promise<AuthCheckR
       logger.log({ type: 'auth-check-sdk-message', message: msg });
       if (msg.type === 'system' && msg.subtype === 'init') {
         const accountInfo = await q.accountInfo();
+        const models = await q.supportedModels();
         logger.log({ type: 'auth-check-account-info', accountInfo });
+        logger.log({ type: 'auth-check-models', models });
         controller.abort();
         if (!accountInfo.email && !accountInfo.apiProvider) {
           const result: AuthCheckResult = { ok: false, reason: 'not-authenticated' };
           logger.log({ type: 'auth-check-result', result });
           return result;
         }
-        const result: AuthCheckResult = { ok: true, accountInfo };
+        const result: AuthCheckResult = { ok: true, accountInfo, models };
         logger.log({ type: 'auth-check-result', result });
         return result;
       }

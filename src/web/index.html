@@ -24,6 +24,15 @@
   </section>
 
   <div id="app-shell" hidden>
+    <div id="update-banner" hidden>
+      <span id="update-banner-text"></span>
+      <div class="update-banner-actions">
+        <button id="update-banner-button" type="button">Update</button>
+        <button id="update-banner-dismiss" type="button" aria-label="Dismiss">&times;</button>
+      </div>
+    </div>
+
+    <div id="app-shell-body">
     <nav id="icon-rail">
       <div id="rail-logo" aria-hidden="true"></div>
 
@@ -119,6 +128,10 @@
             <span class="avatar" id="typing-avatar">?</span>
             <span class="typing-dots"><i></i><i></i><i></i></span>
           </div>
+          <div id="chat-options">
+            <select id="chat-model-select" title="Model for this message"></select>
+            <select id="chat-effort-select" title="Effort for this message"></select>
+          </div>
           <form id="chat-form">
             <input id="chat-input" type="text" placeholder="Message your CEO&hellip;" autocomplete="off" />
             <button type="submit">Send</button>
@@ -139,6 +152,10 @@
           <input id="profile-ceo-name" type="text" maxlength="2000" />
           <label for="profile-ceo-personality">CEO personality / tone</label>
           <input id="profile-ceo-personality" type="text" maxlength="2000" />
+          <label for="profile-default-model">Default model</label>
+          <select id="profile-default-model"></select>
+          <label for="profile-default-effort">Default effort</label>
+          <select id="profile-default-effort"></select>
           <div class="profile-form-buttons">
             <button type="submit" id="profile-save">Save</button>
             <span id="profile-saved-hint" hidden>Saved</span>
@@ -159,6 +176,7 @@
           <code id="settings-log-path" class="settings-value"></code>
         </div>
       </div>
+    </div>
     </div>
   </div>
 

@@ -8,6 +8,11 @@ const el = {
   checkAgain: document.getElementById('check-again'),
   appShell: document.getElementById('app-shell'),
 
+  updateBanner: document.getElementById('update-banner'),
+  updateBannerText: document.getElementById('update-banner-text'),
+  updateBannerButton: document.getElementById('update-banner-button'),
+  updateBannerDismiss: document.getElementById('update-banner-dismiss'),
+
   railHome: document.getElementById('rail-home'),
   railMessages: document.getElementById('rail-messages'),
   railProfile: document.getElementById('rail-profile'),
@@ -44,7 +49,12 @@ const el = {
   profileMission: document.getElementById('profile-mission'),
   profileCeoName: document.getElementById('profile-ceo-name'),
   profileCeoPersonality: document.getElementById('profile-ceo-personality'),
+  profileDefaultModel: document.getElementById('profile-default-model'),
+  profileDefaultEffort: document.getElementById('profile-default-effort'),
   profileSavedHint: document.getElementById('profile-saved-hint'),
+
+  chatModelSelect: document.getElementById('chat-model-select'),
+  chatEffortSelect: document.getElementById('chat-effort-select'),
 
   settingsAccount: document.getElementById('settings-account'),
   settingsLogPath: document.getElementById('settings-log-path'),
@@ -52,6 +62,7 @@ const el = {
 
 let lastProfile = null;
 let lastAccountInfo = null;
+let lastModels = [];
 let onboardingKickedOff = false;
 let currentPage = 'messages';
 let currentChannel = 'ceo';
@@ -107,11 +118,82 @@ function selectChannel(channel) {
 el.navGeneral.addEventListener('click', () => selectChannel('general'));
 el.navCeo.addEventListener('click', () => selectChannel('ceo'));
 
+function modelDisplayName(value) {
+  return lastModels.find((m) => m.value === value)?.displayName ?? value;
+}
+
+// No synthetic "use the default" placeholder here — the SDK's own
+// supportedModels() list already includes a real "default" entry
+// (displayName "Default (recommended)") that itself supports effort
+// levels. A separate blank option would be a confusing near-duplicate and
+// would incorrectly read as "no model supports effort" to the effort
+// selector below, since '' never matches a real model.
+function populateModelSelect(selectEl) {
+  selectEl.innerHTML = '';
+  for (const model of lastModels) {
+    const opt = document.createElement('option');
+    opt.value = model.value;
+    opt.textContent = model.displayName;
+    selectEl.appendChild(opt);
+  }
+}
+
+// Effort options are constrained to what the selected model actually
+// supports (confirmed via the SDK's supportedModels() data — e.g. Haiku
+// supports no effort levels at all) so a silent downgrade shouldn't occur
+// in practice; the UI simply never offers an invalid combination.
+function populateEffortSelect(selectEl, modelValue, blankLabel) {
+  const info = lastModels.find((m) => m.value === modelValue);
+  selectEl.innerHTML = '';
+  if (!info?.supportsEffort) {
+    selectEl.disabled = true;
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'N/A';
+    selectEl.appendChild(opt);
+    return;
+  }
+  selectEl.disabled = false;
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = blankLabel;
+  selectEl.appendChild(blank);
+  for (const level of info.supportedEffortLevels ?? []) {
+    const opt = document.createElement('option');
+    opt.value = level;
+    opt.textContent = level;
+    selectEl.appendChild(opt);
+  }
+}
+
+function setupModelSelectors() {
+  populateModelSelect(el.chatModelSelect);
+  populateModelSelect(el.profileDefaultModel);
+
+  // Assigning select.value a string that matches no <option> clears the
+  // selection entirely (selectedIndex -1) rather than falling back to the
+  // first option — only assign when there's a real saved default to apply.
+  if (lastProfile?.defaultModel) el.chatModelSelect.value = lastProfile.defaultModel;
+  populateEffortSelect(el.chatEffortSelect, el.chatModelSelect.value, 'Default effort');
+  if (lastProfile?.defaultEffort) el.chatEffortSelect.value = lastProfile.defaultEffort;
+}
+
+el.chatModelSelect.addEventListener('change', () => {
+  populateEffortSelect(el.chatEffortSelect, el.chatModelSelect.value, 'Default effort');
+});
+
+el.profileDefaultModel.addEventListener('change', () => {
+  populateEffortSelect(el.profileDefaultEffort, el.profileDefaultModel.value, 'Default');
+});
+
 function populateProfileForm(profile) {
   el.profileCompany.value = profile?.companyName ?? '';
   el.profileMission.value = profile?.mission ?? '';
   el.profileCeoName.value = profile?.ceoName ?? '';
   el.profileCeoPersonality.value = profile?.ceoPersonality ?? '';
+  if (profile?.defaultModel) el.profileDefaultModel.value = profile.defaultModel;
+  populateEffortSelect(el.profileDefaultEffort, el.profileDefaultModel.value, 'Default');
+  if (profile?.defaultEffort) el.profileDefaultEffort.value = profile.defaultEffort;
 }
 
 function renderHomePage() {
@@ -134,6 +216,40 @@ async function renderSettingsPage() {
   }
   el.settingsLogPath.textContent = metaCache.logFilePath;
 }
+
+async function checkForUpdateBanner(retriesLeft) {
+  const res = await api('/api/meta');
+  metaCache = await res.json();
+
+  if (metaCache.updateInfo?.updateAvailable) {
+    el.updateBannerText.textContent = `A new version of my-team is available (v${metaCache.updateInfo.latestVersion}).`;
+    el.updateBanner.hidden = false;
+  } else if (!metaCache.updateInfo && retriesLeft > 0) {
+    // The registry check runs in the background at server startup and may
+    // not have resolved yet — try once more shortly rather than never
+    // showing the banner this session.
+    setTimeout(() => checkForUpdateBanner(retriesLeft - 1), 3000);
+  }
+}
+
+el.updateBannerButton.addEventListener('click', async () => {
+  el.updateBannerButton.disabled = true;
+  el.updateBannerButton.textContent = 'Updating…';
+  const res = await api('/api/update', { method: 'POST' });
+  const result = await res.json();
+  if (result.ok) {
+    el.updateBannerText.textContent = 'Updated — restart (stop and run "npm run team" again) to use the new version.';
+    el.updateBannerButton.hidden = true;
+  } else {
+    el.updateBannerButton.disabled = false;
+    el.updateBannerButton.textContent = 'Update';
+    el.updateBannerText.textContent = 'Update failed — check the terminal for details.';
+  }
+});
+
+el.updateBannerDismiss.addEventListener('click', () => {
+  el.updateBanner.hidden = true;
+});
 
 function selectPage(page) {
   currentPage = page;
@@ -170,10 +286,13 @@ async function checkStatus() {
   if (result.ok) {
     lastAccountInfo = result.accountInfo;
     lastProfile = result.profile;
+    lastModels = result.models ?? [];
     renderProfileUI(lastProfile);
+    setupModelSelectors();
     el.appShell.hidden = false;
     setStatus('online');
     selectPage('messages');
+    checkForUpdateBanner(1);
 
     if (!lastProfile?.onboardingComplete && !onboardingKickedOff) {
       onboardingKickedOff = true;
@@ -213,6 +332,8 @@ el.profileForm.addEventListener('submit', async (e) => {
       mission,
       ceoName: el.profileCeoName.value.trim(),
       ceoPersonality: el.profileCeoPersonality.value.trim(),
+      defaultModel: el.profileDefaultModel.value,
+      defaultEffort: el.profileDefaultEffort.value,
     }),
   });
   if (!res.ok) return;
@@ -281,8 +402,16 @@ function appendUserMessage(text) {
   appendMessageRow('user', 'You', 'Y', text);
 }
 
-function appendAssistantRow() {
-  return appendMessageRow('assistant', lastProfile?.ceoName || 'your AI CEO', getCeoInitial(), '');
+function appendAssistantRow(turnMeta) {
+  const result = appendMessageRow('assistant', lastProfile?.ceoName || 'your AI CEO', getCeoInitial(), '');
+  if (turnMeta?.model) {
+    const badge = document.createElement('span');
+    badge.className = 'msg-model-badge';
+    const modelLabel = modelDisplayName(turnMeta.model);
+    badge.textContent = turnMeta.effort ? `${modelLabel} · ${turnMeta.effort}` : modelLabel;
+    result.row.querySelector('.msg-meta').appendChild(badge);
+  }
+  return result;
 }
 
 function appendToolMessage(name) {
@@ -311,11 +440,12 @@ async function streamChat(message, { showUserBubble }) {
   let assistantTextEl = null;
   let assistantText = '';
   let sawContent = false;
+  let turnMeta = null;
 
   const res = await api('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, model: el.chatModelSelect.value, effort: el.chatEffortSelect.value }),
   });
 
   if (!res.ok || !res.body) {
@@ -342,13 +472,15 @@ async function streamChat(message, { showUserBubble }) {
       if (!line) continue;
       const event = JSON.parse(line.slice('data: '.length));
 
-      if (event.type === 'text-delta') {
+      if (event.type === 'meta') {
+        turnMeta = { model: event.model, effort: event.effort };
+      } else if (event.type === 'text-delta') {
         if (!sawContent) {
           hideTypingIndicator();
           sawContent = true;
         }
         if (!assistantTextEl) {
-          assistantTextEl = appendAssistantRow().textEl;
+          assistantTextEl = appendAssistantRow(turnMeta).textEl;
         }
         assistantText += event.text;
         assistantTextEl.innerHTML = renderMarkdown(assistantText);

@@ -1,6 +1,9 @@
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+export type EffortLevel = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+const EFFORT_LEVELS: readonly EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
+
 export interface ProfileData {
   companyName: string;
   mission: string;
@@ -8,6 +11,9 @@ export interface ProfileData {
   ceoPersonality: string;
   /** False while the conversational onboarding interview is still in progress. */
   onboardingComplete: boolean;
+  /** Empty string means "no override — let Claude Code pick its own default." */
+  defaultModel: string;
+  defaultEffort: EffortLevel | '';
 }
 
 const MAX_FIELD_LENGTH = 2000;
@@ -59,6 +65,8 @@ export async function readProfile(cwd: string): Promise<ProfileData | null> {
     ceoName: stringOrDefault(parsed.ceoName, DEFAULT_CEO_NAME),
     ceoPersonality: stringOrDefault(parsed.ceoPersonality, DEFAULT_CEO_PERSONALITY),
     onboardingComplete: parsed.onboardingComplete === true,
+    defaultModel: typeof parsed.defaultModel === 'string' ? parsed.defaultModel : '',
+    defaultEffort: EFFORT_LEVELS.includes(parsed.defaultEffort) ? parsed.defaultEffort : '',
   };
 }
 
@@ -85,8 +93,16 @@ export function validateProfileInput(body: any): ProfileValidationResult {
   if (typeof ceoName === 'object') return ceoName;
   const ceoPersonality = clampField(body?.ceoPersonality, DEFAULT_CEO_PERSONALITY);
   if (typeof ceoPersonality === 'object') return ceoPersonality;
+
+  const defaultModel = clampField(body?.defaultModel, '');
+  if (typeof defaultModel === 'object') return defaultModel;
+  const requestedEffort = typeof body?.defaultEffort === 'string' ? body.defaultEffort.trim() : '';
+  const defaultEffort: EffortLevel | '' = EFFORT_LEVELS.includes(requestedEffort as EffortLevel)
+    ? (requestedEffort as EffortLevel)
+    : '';
+
   // A manual submission is a deliberate, complete configuration — never partial.
-  return { companyName, mission, ceoName, ceoPersonality, onboardingComplete: true };
+  return { companyName, mission, ceoName, ceoPersonality, onboardingComplete: true, defaultModel, defaultEffort };
 }
 
 export async function writeProfile(cwd: string, data: ProfileData): Promise<void> {

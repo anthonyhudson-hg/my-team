@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
+import { OWN_PACKAGE_NAME, OWN_PACKAGE_VERSION } from '../own-package.js';
 import { createServer } from './http-server.js';
 import { createLogger } from './logger.js';
 import { generateToken } from './token.js';
+import { checkForUpdate, type UpdateInfo } from './update-check.js';
 
 function openBrowser(url: string): void {
   const platform = process.platform;
@@ -23,8 +25,15 @@ export async function startServer(cwd: string): Promise<void> {
   const portRef = { port: 0 };
   const logger = createLogger(cwd);
 
+  // Fire-and-forget: never block startup on a network round-trip. /api/meta
+  // just returns null until this resolves.
+  const updateInfoRef: { current: UpdateInfo | null } = { current: null };
+  checkForUpdate(OWN_PACKAGE_NAME, OWN_PACKAGE_VERSION).then((info) => {
+    updateInfoRef.current = info;
+  });
+
   await new Promise<void>((resolve) => {
-    const server = createServer({ cwd, token, portRef, logger });
+    const server = createServer({ cwd, token, portRef, logger, updateInfoRef });
     server.listen(0, '127.0.0.1', () => {
       const address = server.address();
       portRef.port = typeof address === 'object' && address ? address.port : 0;

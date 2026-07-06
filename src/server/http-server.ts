@@ -2,11 +2,14 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { OWN_PACKAGE_NAME } from '../own-package.js';
+import { npmInstall } from '../npm-install.js';
 import { checkAuth } from './auth-check.js';
 import { ChatSession } from './chat-session.js';
 import type { Logger } from './logger.js';
 import { readProfile, validateProfileInput, writeProfile } from './profile.js';
 import { tokensMatch } from './token.js';
+import type { UpdateInfo } from './update-check.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIR = path.join(__dirname, '..', 'web');
@@ -23,6 +26,8 @@ export interface CreateServerOptions {
   /** Mutable box so the real port (known only after listen() resolves) can be read at request time. */
   portRef: { port: number };
   logger: Logger;
+  /** Mutable box: null until the background registry check resolves. */
+  updateInfoRef: { current: UpdateInfo | null };
 }
 
 function isAllowedHost(hostHeader: string | undefined, port: number): boolean {
@@ -42,7 +47,7 @@ async function readJsonBody(req: http.IncomingMessage): Promise<any> {
 }
 
 export function createServer(options: CreateServerOptions): http.Server {
-  const { cwd, token, portRef, logger } = options;
+  const { cwd, token, portRef, logger, updateInfoRef } = options;
   const chatSession = new ChatSession(logger);
 
   return http.createServer(async (req, res) => {
@@ -82,7 +87,20 @@ export function createServer(options: CreateServerOptions): http.Server {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/meta') {
-      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ logFilePath: logger.filePath }));
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(
+        JSON.stringify({ logFilePath: logger.filePath, updateInfo: updateInfoRef.current }),
+      );
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/update') {
+      const info = updateInfoRef.current;
+      if (!info?.updateAvailable || !info.latestVersion) {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'no update available' }));
+        return;
+      }
+      const ok = npmInstall(cwd, `${OWN_PACKAGE_NAME}@${info.latestVersion}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok }));
       return;
     }
 
@@ -116,9 +134,13 @@ export function createServer(options: CreateServerOptions): http.Server {
         return;
       }
       let message: string;
+      let model: string | undefined;
+      let effort: string | undefined;
       try {
         const body = await readJsonBody(req);
         message = String(body.message ?? '');
+        model = typeof body.model === 'string' && body.model ? body.model : undefined;
+        effort = typeof body.effort === 'string' && body.effort ? body.effort : undefined;
       } catch {
         res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'invalid body' }));
         return;
@@ -133,7 +155,7 @@ export function createServer(options: CreateServerOptions): http.Server {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
       });
-      for await (const event of chatSession.sendTurn(message, cwd)) {
+      for await (const event of chatSession.sendTurn(message, cwd, { model, effort })) {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
       res.end();
