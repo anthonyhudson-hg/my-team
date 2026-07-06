@@ -26,5 +26,13 @@
     "@types/node": "^26.1.0",
     "typescript": "^6.0.3"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anthonyhudson-hg/my-team.git"
+  },
+  "homepage": "https://github.com/anthonyhudson-hg/my-team#readme",
+  "bugs": {
+    "url": "https://github.com/anthonyhudson-hg/my-team/issues"
+  }
 }
