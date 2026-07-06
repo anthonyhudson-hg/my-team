@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 /**
- * Backs the Files page: the actual working tree of the repo `my-team` is
+ * Backs the Files page: the actual working tree of the repo `cofound` is
  * running in, not a stand-in/mock. When the repo is a git checkout (the
  * common case), file listing and change status come from git itself
  * (`ls-files` / `status --porcelain`) so "what's here" and "what's changed"

@@ -8,7 +8,7 @@ function plainText(tokens) {
 describe('tokenizeLine', () => {
   it('reassembles to the exact original line for every language mode (no dropped/duplicated characters)', () => {
     const cases = [
-      ['json', '  "name": "my-team",'],
+      ['json', '  "name": "cofound",'],
       ['css', '.file-row:hover { color: #fff; }'],
       ['code', 'const x = foo(1, "a"); // comment'],
       ['md', '# Heading with `code`'],

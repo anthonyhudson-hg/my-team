@@ -29,11 +29,11 @@ function installResilienceHandlers(logger: { log(entry: Record<string, unknown>)
   // take down the UI mid-conversation.
   process.on('uncaughtException', (err) => {
     logger.log({ type: 'uncaught-exception', error: String(err?.message ?? err), stack: err?.stack });
-    console.error('my-team: uncaught exception (continuing):', err);
+    console.error('cofound: uncaught exception (continuing):', err);
   });
   process.on('unhandledRejection', (reason) => {
     logger.log({ type: 'unhandled-rejection', reason: String(reason) });
-    console.error('my-team: unhandled rejection (continuing):', reason);
+    console.error('cofound: unhandled rejection (continuing):', reason);
   });
 }
 
@@ -60,7 +60,7 @@ export async function startServer(cwd: string): Promise<void> {
       const address = server.address();
       portRef.port = typeof address === 'object' && address ? address.port : 0;
       const url = `http://127.0.0.1:${portRef.port}/?token=${token}`;
-      console.log(`my-team is running for ${cwd}`);
+      console.log(`Cofound is running for ${cwd}`);
       console.log(`Open: ${url}`);
       console.log(`Logging raw requests/responses to: ${logger.filePath}`);
 

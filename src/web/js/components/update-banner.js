@@ -30,7 +30,7 @@ export function createUpdateBanner() {
   async function checkForUpdate(retriesLeft = 1) {
     const { body } = await api.meta();
     if (body.updateInfo?.updateAvailable) {
-      text.textContent = `A new version of my-team is available (v${body.updateInfo.latestVersion}).`;
+      text.textContent = `A new version of Cofound is available (v${body.updateInfo.latestVersion}).`;
       root.hidden = false;
     } else if (!body.updateInfo && retriesLeft > 0) {
       // The registry check runs in the background at server startup and may not have resolved yet.

@@ -5,7 +5,7 @@ export type EffortLevel = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 const EFFORT_LEVELS: readonly EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 
 export interface ProfileData {
-  /** The founder/developer running this instance — not a company-level field, but kept in the same file since my-team is single-user today. */
+  /** The founder/developer running this instance — not a company-level field, but kept in the same file since Cofound is single-user today. */
   founderName: string;
   companyName: string;
   mission: string;
@@ -23,7 +23,7 @@ const DEFAULT_CEO_NAME = 'your AI CEO';
 const DEFAULT_CEO_PERSONALITY = 'direct, pragmatic, and personally invested in the company succeeding';
 
 export function getProfileDir(cwd: string): string {
-  return path.join(cwd, '.my-team');
+  return path.join(cwd, '.cofound');
 }
 
 export function getProfilePath(cwd: string): string {
@@ -54,11 +54,11 @@ export async function readProfile(cwd: string): Promise<ProfileData | null> {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    console.warn(`my-team: ${filePath} exists but isn't valid JSON — treating as unconfigured.`);
+    console.warn(`cofound: ${filePath} exists but isn't valid JSON — treating as unconfigured.`);
     return null;
   }
   if (typeof parsed !== 'object' || parsed === null) {
-    console.warn(`my-team: ${filePath} exists but has an unexpected shape — treating as unconfigured.`);
+    console.warn(`cofound: ${filePath} exists but has an unexpected shape — treating as unconfigured.`);
     return null;
   }
   return {
@@ -149,7 +149,7 @@ Use "text" for open-ended answers (names, descriptions), "single_select" when ex
  */
 function getProcessSafetyInstructions(cwd: string): string {
   const pidFilePath = path.join(getProfileDir(cwd), 'server.pid');
-  return `This chat dashboard you're running inside of is itself an ordinary Node process in this repo, started by the founder via "npm run team". If you ever need to restart a dev server or otherwise manage node/npm processes here, do NOT broadly kill all node processes (e.g. "taskkill /F /IM node.exe", "killall node", "pkill node") — that would also kill this dashboard mid-conversation. Target the specific dev-server process by its own port or PID instead. This dashboard's own process info is at ${pidFilePath} (JSON: {"pid": ..., "port": ...}) — check it first and exclude that PID from anything you kill or restart.`;
+  return `This chat dashboard you're running inside of is itself an ordinary Node process in this repo, started by the founder via "npm run cofound". If you ever need to restart a dev server or otherwise manage node/npm processes here, do NOT broadly kill all node processes (e.g. "taskkill /F /IM node.exe", "killall node", "pkill node") — that would also kill this dashboard mid-conversation. Target the specific dev-server process by its own port or PID instead. This dashboard's own process info is at ${pidFilePath} (JSON: {"pid": ..., "port": ...}) — check it first and exclude that PID from anything you kill or restart.`;
 }
 
 /**

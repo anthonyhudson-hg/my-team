@@ -67,7 +67,7 @@ function isAllowedHost(hostHeader: string | undefined, port: number): boolean {
 }
 
 function getToken(req: http.IncomingMessage, url: URL): string | undefined {
-  return (req.headers['x-my-team-token'] as string | undefined) ?? url.searchParams.get('token') ?? undefined;
+  return (req.headers['x-cofound-token'] as string | undefined) ?? url.searchParams.get('token') ?? undefined;
 }
 
 async function readJsonBody(req: http.IncomingMessage): Promise<any> {

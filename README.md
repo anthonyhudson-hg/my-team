@@ -1,4 +1,4 @@
-# my-team
+# Cofound
 
 Chat with your local Claude Code subscription from a web dashboard, scoped to whatever repo you're working in. Dev-only — no API key required, no production code path.
 
@@ -9,15 +9,15 @@ It drives the official [`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/
 In any repo:
 
 ```sh
-npx @harborgroup/my-team init
+npx @harborgroup/cofound init
 ```
 
-This adds `@harborgroup/my-team` as a devDependency and an `npm run team` script.
+This adds `@harborgroup/cofound` as a devDependency and an `npm run cofound` script.
 
 ## Usage
 
 ```sh
-npm run team
+npm run cofound
 ```
 
 Opens a local, token-protected dashboard in your browser (bound to `127.0.0.1` only). If Claude Code isn't installed or logged in yet, you'll see onboarding instructions instead.
@@ -26,19 +26,19 @@ Chat runs with this repo as Claude's working directory, and tool calls (file edi
 
 ## Your AI CEO
 
-The first time you run `npm run team` in a repo, Claude opens the conversation itself — it introduces itself and asks about you (your name), your company (name, mission), what to call itself, and what personality it should have. Once it has answers, it writes `.my-team/profile.json` itself and adopts that identity from then on: not "an assistant with some context," but your company's AI CEO by name, on every chat turn (via a strong identity system prompt — weak "you're also helping company X" framing gets treated as low-trust incidental context and can get second-guessed; asserting it as configured identity doesn't).
+The first time you run `npm run cofound` in a repo, Claude opens the conversation itself — it introduces itself and asks about you (your name), your company (name, mission), what to call itself, and what personality it should have. Once it has answers, it writes `.cofound/profile.json` itself and adopts that identity from then on: not "an assistant with some context," but your company's AI CEO by name, on every chat turn (via a strong identity system prompt — weak "you're also helping company X" framing gets treated as low-trust incidental context and can get second-guessed; asserting it as configured identity doesn't).
 
-**Commit `.my-team/profile.json`** — don't gitignore it. It's shared, non-sensitive team config, the same category as a checked-in `CLAUDE.md`: the whole point of it living per-repo is that teammates cloning the repo share the same CEO persona without re-onboarding. Edit your name, company name, mission, CEO name, or personality any time from the Settings page; changes take effect on the next chat turn without restarting the server.
+**Commit `.cofound/profile.json`** — don't gitignore it. It's shared, non-sensitive team config, the same category as a checked-in `CLAUDE.md`: the whole point of it living per-repo is that teammates cloning the repo share the same CEO persona without re-onboarding. Edit your name, company name, mission, CEO name, or personality any time from the Settings page; changes take effect on the next chat turn without restarting the server.
 
 ## Interface
 
 A Slack-style shell: a primary rail (Home / Chats / Activity / Files), a sidebar with a `#general` channel and a DM with your AI CEO, real token-by-token streaming (via the SDK's `includePartialMessages`), a typing indicator, and a command palette (`⌘K`/`Ctrl+K`) for jumping anywhere. Fonts and icons are self-hosted (no CDN dependency — this is a local tool, it shouldn't need the internet to render its own chrome). It's plain static HTML/CSS/JS (native ES modules, no bundler, no build step) talking to the backend over local HTTP + SSE — no browser-only assumptions — so a future native (Tauri) shell could point at the same server without a rewrite; there's no Tauri wrapper today, and none is planned unless that changes.
 
-`#general` has no multi-user backend (my-team is a single-developer tool) — it's a plain persisted notes channel (`.my-team/general-history.jsonl`) rather than a real team channel.
+`#general` has no multi-user backend (Cofound is a single-developer tool) — it's a plain persisted notes channel (`.cofound/general-history.jsonl`) rather than a real team channel.
 
 ## Appearance
 
-Settings has a theme (Contrast / Light / Dark) and accent color picker, applied live and persisted server-side to `.my-team/ui-prefs.json` — not browser `localStorage`, since the dashboard's port is randomized on every launch, which would otherwise reset the preference on every restart.
+Settings has a theme (Contrast / Light / Dark) and accent color picker, applied live and persisted server-side to `.cofound/ui-prefs.json` — not browser `localStorage`, since the dashboard's port is randomized on every launch, which would otherwise reset the preference on every restart.
 
 ## Model & effort
 
@@ -46,11 +46,11 @@ Set a default model and reasoning effort for your CEO on the Settings page (fetc
 
 ## Updates
 
-On startup, `my-team` checks the npm registry in the background for a newer published version. If one exists, a banner appears with an "Update" button that runs the install for you (`npm install --save-dev` the new version) — restart `npm run team` afterward to pick it up. No auto-restart; that's a deliberate simplicity/safety tradeoff over self-respawning the running server process.
+On startup, `Cofound` checks the npm registry in the background for a newer published version. If one exists, a banner appears with an "Update" button that runs the install for you (`npm install --save-dev` the new version) — restart `npm run cofound` afterward to pick it up. No auto-restart; that's a deliberate simplicity/safety tradeoff over self-respawning the running server process.
 
 ## Logs
 
-Every raw request sent to the Claude Agent SDK (including the exact system prompt) and every raw message it streams back is logged verbatim to a JSON-lines file, one per `npm run team` run, under `~/.my-team/logs/` (outside the repo — old runs beyond a retention count are pruned automatically). The current run's log path is printed on startup and shown on the Settings page.
+Every raw request sent to the Claude Agent SDK (including the exact system prompt) and every raw message it streams back is logged verbatim to a JSON-lines file, one per `npm run cofound` run, under `~/.cofound/logs/` (outside the repo — old runs beyond a retention count are pruned automatically). The current run's log path is printed on startup and shown on the Settings page.
 
 ## Clarifying questions
 
@@ -58,19 +58,19 @@ When your CEO wants a structured answer rather than free text, it asks via a rea
 
 ## Chat history
 
-The visible conversation — not just Claude's own session context — is persisted to `.my-team/chat-history.jsonl` and replayed on load, so both a page reload and a full server restart show prior messages instead of starting over. A widget that was already answered replays locked to that answer; a widget left unanswered when the server stopped (e.g. it was killed mid-conversation) replays as a genuinely live, answerable widget, composer gating included, picking up exactly where things left off. Unlike `profile.json`, this file is gitignored automatically (it can contain arbitrary conversation content) — `init` sets this up, and a plain `npm run team` self-heals the `.gitignore` too, so upgrading an existing install doesn't require re-running `init`.
+The visible conversation — not just Claude's own session context — is persisted to `.cofound/chat-history.jsonl` and replayed on load, so both a page reload and a full server restart show prior messages instead of starting over. A widget that was already answered replays locked to that answer; a widget left unanswered when the server stopped (e.g. it was killed mid-conversation) replays as a genuinely live, answerable widget, composer gating included, picking up exactly where things left off. Unlike `profile.json`, this file is gitignored automatically (it can contain arbitrary conversation content) — `init` sets this up, and a plain `npm run cofound` self-heals the `.gitignore` too, so upgrading an existing install doesn't require re-running `init`.
 
 ## Staying out of its own way
 
-This dashboard is itself an ordinary Node process running inside the repo it manages. If your CEO ever needs to restart a dev server, broadly killing every node process (`taskkill /F /IM node.exe`, `killall node`) would take the dashboard down with it — so the system prompt explicitly warns against that and points at `.my-team/server.pid` (also gitignored) to identify and exclude the dashboard's own process. The server also logs and continues past uncaught exceptions rather than crashing the whole session.
+This dashboard is itself an ordinary Node process running inside the repo it manages. If your CEO ever needs to restart a dev server, broadly killing every node process (`taskkill /F /IM node.exe`, `killall node`) would take the dashboard down with it — so the system prompt explicitly warns against that and points at `.cofound/server.pid` (also gitignored) to identify and exclude the dashboard's own process. The server also logs and continues past uncaught exceptions rather than crashing the whole session.
 
 ## Files
 
-The Files page is a real, working mini file browser and diff viewer scoped to the repo `my-team` is running in — not a placeholder. The tree, file icons, and change badges (M/A/D/R/U) come from `git ls-files`/`git status` (falling back to a plain directory walk if the repo isn't a git checkout); opening a changed file shows its actual `git diff`, and opening an unchanged file shows its real content with basic syntax highlighting (a small hand-rolled tokenizer — no external highlighting library). The branch name, ahead/behind counts, and change count in the header are all live, re-fetched on every visit (and via the refresh button) so edits made mid-conversation — including ones your CEO makes through tool calls — show up without restarting the server.
+The Files page is a real, working mini file browser and diff viewer scoped to the repo `Cofound` is running in — not a placeholder. The tree, file icons, and change badges (M/A/D/R/U) come from `git ls-files`/`git status` (falling back to a plain directory walk if the repo isn't a git checkout); opening a changed file shows its actual `git diff`, and opening an unchanged file shows its real content with basic syntax highlighting (a small hand-rolled tokenizer — no external highlighting library). The branch name, ahead/behind counts, and change count in the header are all live, re-fetched on every visit (and via the refresh button) so edits made mid-conversation — including ones your CEO makes through tool calls — show up without restarting the server.
 
 ## Resetting
 
-The Settings page has a "Reset to factory settings" button (behind a confirmation step) that deletes `.my-team/profile.json` and `.my-team/chat-history.jsonl` and drops the resumed Claude session, so the very next message starts fresh onboarding — no restart needed, no leftover context from the old profile.
+The Settings page has a "Reset to factory settings" button (behind a confirmation step) that deletes `.cofound/profile.json` and `.cofound/chat-history.jsonl` and drops the resumed Claude session, so the very next message starts fresh onboarding — no restart needed, no leftover context from the old profile.
 
 ## Testing
 

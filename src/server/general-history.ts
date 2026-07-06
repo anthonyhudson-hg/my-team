@@ -3,7 +3,7 @@ import path from 'node:path';
 import { getProfileDir } from './profile.js';
 
 /**
- * #general has no multi-user backend (my-team is single-developer) and no AI
+ * #general has no multi-user backend (Cofound is single-developer) and no AI
  * participant — it's a plain persisted notes channel so messages survive a
  * reload/restart instead of vanishing, same rationale as chat-history.ts.
  * Gitignored: this is local instance data, not shared team config.

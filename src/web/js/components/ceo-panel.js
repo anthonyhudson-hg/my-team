@@ -85,7 +85,7 @@ export function createCeoPanel({ onConfigureEmployee }) {
   ]);
 
   let ceoName = 'your AI CEO';
-  let companyName = 'my-team';
+  let companyName = 'Cofound';
   let founderName = '';
   let onboardingComplete = false;
   let liveWidgetOpen = false;
@@ -208,7 +208,7 @@ export function createCeoPanel({ onConfigureEmployee }) {
     el: root,
     async load({ ceoName: name, companyName: company, founderName: founder, onboardingComplete: done, models, defaults, history }) {
       ceoName = name || 'your AI CEO';
-      companyName = company || 'my-team';
+      companyName = company || 'Cofound';
       founderName = founder || '';
       onboardingComplete = !!done;
       headerName.textContent = ceoName;

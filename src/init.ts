@@ -3,33 +3,33 @@ import path from 'node:path';
 import { npmInstall } from './npm-install.js';
 import { OWN_PACKAGE_NAME, OWN_PACKAGE_ROOT, OWN_PACKAGE_VERSION } from './own-package.js';
 
-function addTeamScript(repoPackageJsonPath: string): void {
+function addCofoundScript(repoPackageJsonPath: string): void {
   const raw = readFileSync(repoPackageJsonPath, 'utf-8');
   const pkg = JSON.parse(raw);
   pkg.scripts ??= {};
 
-  if (pkg.scripts.team) {
-    if (pkg.scripts.team !== 'my-team') {
-      console.warn(`package.json already has a "team" script ("${pkg.scripts.team}") — leaving it untouched. Run "npx my-team" directly instead.`);
+  if (pkg.scripts.cofound) {
+    if (pkg.scripts.cofound !== 'cofound') {
+      console.warn(`package.json already has a "cofound" script ("${pkg.scripts.cofound}") — leaving it untouched. Run "npx cofound" directly instead.`);
     }
     return;
   }
 
-  pkg.scripts.team = 'my-team';
+  pkg.scripts.cofound = 'cofound';
   writeFileSync(repoPackageJsonPath, JSON.stringify(pkg, null, 2) + '\n');
-  console.log('Added "npm run team" script to package.json.');
+  console.log('Added "npm run cofound" script to package.json.');
 }
 
-// .my-team/profile.json is deliberately NOT in this list — it's committed
+// .cofound/profile.json is deliberately NOT in this list — it's committed
 // (see README: it's shared, non-sensitive team config, the same category as
 // CLAUDE.md). Everything below is either arbitrary conversation content,
 // a personal display preference, or per-machine-run ephemeral state; none
 // of it belongs in git.
 const GITIGNORE_ENTRIES = [
-  '.my-team/chat-history.jsonl',
-  '.my-team/general-history.jsonl',
-  '.my-team/ui-prefs.json',
-  '.my-team/server.pid',
+  '.cofound/chat-history.jsonl',
+  '.cofound/general-history.jsonl',
+  '.cofound/ui-prefs.json',
+  '.cofound/server.pid',
 ];
 
 export function ensureGitignore(cwd: string): void {
@@ -54,12 +54,12 @@ export async function runInit(cwd: string): Promise<void> {
 
   const installed = npmInstall(cwd, `${OWN_PACKAGE_NAME}@${OWN_PACKAGE_VERSION}`) || npmInstall(cwd, OWN_PACKAGE_ROOT);
   if (!installed) {
-    console.error('Failed to install my-team as a devDependency.');
+    console.error('Failed to install Cofound as a devDependency.');
     process.exitCode = 1;
     return;
   }
 
-  addTeamScript(repoPackageJsonPath);
+  addCofoundScript(repoPackageJsonPath);
   ensureGitignore(cwd);
-  console.log('Done — run "npm run team" to launch.');
+  console.log('Done — run "npm run cofound" to launch.');
 }

@@ -144,7 +144,7 @@ async function loadDashboard() {
   applyTheme(uiPrefsData.theme, uiPrefsData.accent);
 
   const { companyName, founderName, ceoName, onboardingComplete } = profileFields();
-  rail.setLogoInitial(initialOf(companyName, 'M'));
+  rail.setLogoInitial(initialOf(companyName, 'C'));
   sidebar.update({ companyName, ceoName, founderName, onboardingComplete });
 
   const history = historyRes.body.history ?? [];

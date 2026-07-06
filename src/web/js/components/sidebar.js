@@ -2,7 +2,7 @@ import { el, icon } from '../dom.js';
 import { initialOf } from '../format.js';
 
 export function createSidebar({ onNavigate, onOpenPalette, onOpenSettings }) {
-  const workspaceName = el('span', { style: 'font-weight:800;font-size:15.5px;color:var(--side-text);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', text: 'my-team' });
+  const workspaceName = el('span', { style: 'font-weight:800;font-size:15.5px;color:var(--side-text);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;', text: 'Cofound' });
 
   const generalItem = el('button', { class: 'nav-item', type: 'button', onclick: () => onNavigate('general') }, [
     el('span', { class: 'nav-item-icon', style: 'font-size:16px;' }, [icon('hash')]),
@@ -82,7 +82,7 @@ export function createSidebar({ onNavigate, onOpenPalette, onOpenSettings }) {
       ceoItem.classList.toggle('active', view === 'ceo');
     },
     update({ companyName, ceoName, founderName, onboardingComplete }) {
-      workspaceName.textContent = companyName || 'my-team';
+      workspaceName.textContent = companyName || 'Cofound';
       const resolvedCeoName = ceoName || 'your AI CEO';
       ceoNameLabel.textContent = resolvedCeoName;
       ceoAvatar.textContent = initialOf(resolvedCeoName, 'A');

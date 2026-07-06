@@ -372,7 +372,7 @@ export function createFilesPanel({ onOpenCeo }) {
     load,
     setProfile({ ceoName: name, companyName }) {
       ceoName = name || 'your AI CEO';
-      root.querySelector('.files-workspace-name').textContent = companyName || 'my-team';
+      root.querySelector('.files-workspace-name').textContent = companyName || 'Cofound';
       updateHeader();
     },
   };

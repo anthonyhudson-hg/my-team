@@ -102,7 +102,7 @@ export function createGeneralPanel({ onOpenCeo, onOpenSettings }) {
       prefsPatch = onSavePrefs;
       bannerDismissed = generalBannerDismissed;
       banner.hidden = bannerDismissed;
-      const company = companyName || 'my-team';
+      const company = companyName || 'Cofound';
       bannerTitle.textContent = `Welcome to ${company}`;
       bannerBody.textContent = `You're all set up. Run through the quick checklist below to find your footing — and ${ceoName || 'your AI CEO'} is one message away whenever you're stuck.`;
       introTitle.replaceChildren('This is the start of ', el('span', { style: 'color:var(--muted);', text: '#' }), 'general');

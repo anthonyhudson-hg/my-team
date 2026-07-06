@@ -8,14 +8,14 @@ import path from 'node:path';
  * streams back (init, deltas, tool calls, results, errors) gets logged
  * verbatim as one JSON-lines file per server run.
  *
- * Rotation is per-run rather than byte-size-based: each `npm run team`
+ * Rotation is per-run rather than byte-size-based: each `npm run cofound`
  * invocation gets its own file, and old runs beyond RETENTION_COUNT are
  * pruned at startup. This sidesteps the concurrent-append/rotate-mid-write
  * hazards of size-based rotation, and maps naturally onto how you'd actually
  * want to debug this tool ("show me the log from my last session").
  *
  * Logs live outside the repo entirely (under the user's home directory),
- * not in .my-team/ alongside profile.json — they're ephemeral machine/debug
+ * not in .cofound/ alongside profile.json — they're ephemeral machine/debug
  * state, not shared project config, and may contain full file contents or
  * other repo material flowing through tool calls, so they should never risk
  * ending up committed.
@@ -48,7 +48,7 @@ function repoKey(cwd: string): string {
 }
 
 export function createLogger(cwd: string): Logger {
-  const dir = path.join(os.homedir(), '.my-team', 'logs');
+  const dir = path.join(os.homedir(), '.cofound', 'logs');
   mkdirSync(dir, { recursive: true });
 
   const key = repoKey(cwd);

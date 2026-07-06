@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 // Self-hosts the UI's icon font and type family instead of pulling them from
-// a CDN at runtime: my-team binds to 127.0.0.1 only and is meant to work the
+// a CDN at runtime: Cofound binds to 127.0.0.1 only and is meant to work the
 // same with or without a working internet connection, so the dashboard chrome
 // itself shouldn't depend on unpkg/fonts.googleapis.com being reachable.
 

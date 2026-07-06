@@ -78,7 +78,7 @@ export function createHomePanel({ onOpenPalette, onGoGeneral, onGoCeo }) {
   return {
     el: root,
     update({ companyName, founderName, ceoName, onboardingComplete, hasSentToCeo, hasGeneralMessage }) {
-      const company = companyName || 'my-team';
+      const company = companyName || 'Cofound';
       greetingLabel.textContent = greeting();
       title.textContent = `Welcome to ${company}, ${founderName || 'there'}.`;
       ceoJumpAvatar.textContent = initialOf(ceoName, 'A');

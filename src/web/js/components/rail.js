@@ -10,7 +10,7 @@ const NAV_ITEMS = [
 const REPO_URL = 'https://github.com/anthonyhudson-hg/my-team#readme';
 
 export function createRail({ onNavigate }) {
-  const logo = el('div', { class: 'avatar', id: 'rail-logo-mark', style: 'width:40px;height:40px;border-radius:12px;background:var(--accent);font-weight:800;font-size:16px;box-shadow:0 3px 9px rgba(0,0,0,.35);', text: 'M' });
+  const logo = el('div', { class: 'avatar', id: 'rail-logo-mark', style: 'width:40px;height:40px;border-radius:12px;background:var(--accent);font-weight:800;font-size:16px;box-shadow:0 3px 9px rgba(0,0,0,.35);', text: 'C' });
 
   const itemNodes = new Map();
   const items = NAV_ITEMS.map(({ id, label, iconName }) => {

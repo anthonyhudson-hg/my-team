@@ -8,7 +8,7 @@ import { el } from '../dom.js';
 export function createAuthGate({ onCheckAgain }) {
   const body = el('div', {});
   const root = el('div', { class: 'splash-overlay', style: 'position:absolute;' }, [
-    el('div', { class: 'splash-mark' }, [el('div', { class: 'splash-logo', text: 'M' }), el('div', { class: 'splash-name', text: 'my-team' })]),
+    el('div', { class: 'splash-mark' }, [el('div', { class: 'splash-logo', text: 'C' }), el('div', { class: 'splash-name', text: 'Cofound' })]),
     el('div', { class: 'card', style: 'margin-top:28px;padding:22px 26px;max-width:420px;text-align:left;' }, [
       el('h2', { style: 'margin:0 0 12px;font-size:17px;font-weight:800;color:var(--text);', text: 'Set up Claude Code' }),
       body,

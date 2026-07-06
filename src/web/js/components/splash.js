@@ -12,8 +12,8 @@ export function createSplash() {
   const shownAt = Date.now();
   const overlay = el('div', { class: 'splash-overlay' }, [
     el('div', { class: 'splash-mark' }, [
-      el('div', { class: 'splash-logo', text: 'M' }),
-      el('div', { class: 'splash-name', text: 'my-team' }),
+      el('div', { class: 'splash-logo', text: 'C' }),
+      el('div', { class: 'splash-name', text: 'Cofound' }),
       el('div', { class: 'splash-tagline', text: 'Your AI-native workspace' }),
     ]),
     el('div', { class: 'splash-loading' }, [el('div', { class: 'splash-spinner' }), el('span', { class: 'splash-loading-text', text: 'Loading your workspace…' })]),

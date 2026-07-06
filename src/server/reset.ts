@@ -8,7 +8,7 @@ import { getProfilePath } from './profile.js';
  * and the gitignored chat/general history, but leaves server.pid alone (it
  * belongs to this still-running process and is rewritten/removed on its own
  * lifecycle), leaves ui-prefs.json untouched (a personal display setting like
- * dark mode, not onboarding/instance content), and leaves ~/.my-team/logs
+ * dark mode, not onboarding/instance content), and leaves ~/.cofound/logs
  * untouched (global debug logs, not per-repo instance state). Missing files
  * are not an error — resetting an already-fresh repo is a no-op.
  */

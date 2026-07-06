@@ -2,7 +2,7 @@ const token = new URLSearchParams(location.search).get('token') ?? '';
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 function request(path, options = {}) {
-  return fetch(path, { ...options, headers: { ...(options.headers ?? {}), 'X-My-Team-Token': token } });
+  return fetch(path, { ...options, headers: { ...(options.headers ?? {}), 'X-Cofound-Token': token } });
 }
 
 async function requestJson(path, options) {

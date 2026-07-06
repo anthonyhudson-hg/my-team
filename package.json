@@ -1,10 +1,10 @@
 {
-  "name": "@harborgroup/my-team",
-  "version": "0.6.0",
+  "name": "@harborgroup/cofound",
+  "version": "0.7.0",
   "description": "Chat with your local Claude Code subscription from a web dashboard, scoped to the current repo. Dev-only.",
   "type": "module",
   "bin": {
-    "my-team": "dist/cli.js"
+    "cofound": "dist/cli.js"
   },
   "files": [
     "dist"
