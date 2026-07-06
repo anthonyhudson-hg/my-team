@@ -6,12 +6,21 @@ const el = {
   cliMissing: document.getElementById('onboarding-cli-missing'),
   notAuthenticated: document.getElementById('onboarding-not-authenticated'),
   checkAgain: document.getElementById('check-again'),
+  profileSetup: document.getElementById('profile-setup'),
+  profileForm: document.getElementById('profile-form'),
+  profileCompany: document.getElementById('profile-company'),
+  profileMission: document.getElementById('profile-mission'),
+  profileCancel: document.getElementById('profile-cancel'),
   dashboard: document.getElementById('dashboard'),
   accountLine: document.getElementById('account-line'),
+  companyLine: document.getElementById('company-line'),
+  editProfile: document.getElementById('edit-profile'),
   messages: document.getElementById('messages'),
   form: document.getElementById('chat-form'),
   input: document.getElementById('chat-input'),
 };
+
+let lastProfile = null;
 
 function api(path, options = {}) {
   return fetch(path, {
@@ -23,12 +32,24 @@ function api(path, options = {}) {
 function show(section) {
   el.loading.hidden = true;
   el.onboarding.hidden = section !== 'onboarding';
+  el.profileSetup.hidden = section !== 'profile-setup';
   el.dashboard.hidden = section !== 'dashboard';
+}
+
+function renderCompanyLine(profile) {
+  el.companyLine.textContent = profile ? `\u{00B7} ${profile.companyName}` : '';
+}
+
+function populateProfileForm(profile) {
+  el.profileCompany.value = profile?.companyName ?? '';
+  el.profileMission.value = profile?.mission ?? '';
+  el.profileCancel.hidden = !profile;
 }
 
 async function checkStatus() {
   el.loading.hidden = false;
   el.onboarding.hidden = true;
+  el.profileSetup.hidden = true;
   el.dashboard.hidden = true;
   const res = await api('/api/status');
   const result = await res.json();
@@ -36,7 +57,15 @@ async function checkStatus() {
   if (result.ok) {
     const info = result.accountInfo;
     el.accountLine.textContent = `Logged in as ${info.email ?? 'unknown'}${info.subscriptionType ? ` (${info.subscriptionType})` : ''}`;
-    show('dashboard');
+    lastProfile = result.profile;
+
+    if (!lastProfile) {
+      populateProfileForm(null);
+      show('profile-setup');
+    } else {
+      renderCompanyLine(lastProfile);
+      show('dashboard');
+    }
     return;
   }
 
@@ -46,6 +75,33 @@ async function checkStatus() {
 }
 
 el.checkAgain.addEventListener('click', checkStatus);
+
+el.profileForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const companyName = el.profileCompany.value.trim();
+  const mission = el.profileMission.value.trim();
+  if (!companyName || !mission) return;
+
+  const res = await api('/api/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ companyName, mission }),
+  });
+  if (!res.ok) return;
+
+  lastProfile = { companyName, mission };
+  renderCompanyLine(lastProfile);
+  show('dashboard');
+});
+
+el.editProfile.addEventListener('click', () => {
+  populateProfileForm(lastProfile);
+  show('profile-setup');
+});
+
+el.profileCancel.addEventListener('click', () => {
+  show('dashboard');
+});
 
 function appendMessage(className, text) {
   const div = document.createElement('div');

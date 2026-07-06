@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkAuth } from './auth-check.js';
 import { ChatSession } from './chat-session.js';
+import { readProfile, validateProfileInput, writeProfile } from './profile.js';
 import { tokensMatch } from './token.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -73,7 +74,26 @@ export function createServer(options: CreateServerOptions): http.Server {
 
     if (req.method === 'GET' && url.pathname === '/api/status') {
       const result = await checkAuth(cwd);
-      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result));
+      const body = result.ok ? { ...result, profile: await readProfile(cwd) } : result;
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/profile') {
+      let body: any;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'invalid body' }));
+        return;
+      }
+      const validated = validateProfileInput(body);
+      if ('error' in validated) {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify(validated));
+        return;
+      }
+      await writeProfile(cwd, validated);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
       return;
     }
 

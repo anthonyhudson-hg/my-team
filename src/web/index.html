@@ -24,9 +24,25 @@
       <button id="check-again">Check again</button>
     </section>
 
+    <section id="profile-setup" hidden>
+      <h1>Tell Claude about your company</h1>
+      <form id="profile-form">
+        <label for="profile-company">Company name</label>
+        <input id="profile-company" type="text" maxlength="2000" required />
+        <label for="profile-mission">Mission / description</label>
+        <textarea id="profile-mission" maxlength="2000" required></textarea>
+        <div class="profile-form-buttons">
+          <button type="submit">Save and continue</button>
+          <button id="profile-cancel" type="button" hidden>Cancel</button>
+        </div>
+      </form>
+    </section>
+
     <section id="dashboard" hidden>
       <header>
         <span id="account-line"></span>
+        <span id="company-line"></span>
+        <button id="edit-profile" type="button">Edit profile</button>
       </header>
       <div class="banner">
         Tool actions (file edits, shell commands) are auto-approved by Claude's own safety classifier &mdash;
