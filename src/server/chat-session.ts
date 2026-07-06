@@ -1,6 +1,6 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { sanitizeEnv } from './env.js';
-import { formatProfileForSystemPrompt, readProfile } from './profile.js';
+import { formatProfileForSystemPrompt, getOnboardingSystemPrompt, readProfile } from './profile.js';
 
 export type ChatEvent =
   | { type: 'meta'; sessionId: string }
@@ -30,6 +30,7 @@ export class ChatSession {
     this.turnInFlight = true;
     try {
       const profile = await readProfile(cwd);
+      const systemPromptAppend = profile ? formatProfileForSystemPrompt(profile) : getOnboardingSystemPrompt(cwd);
       const q = query({
         prompt: message,
         options: {
@@ -37,9 +38,7 @@ export class ChatSession {
           env: sanitizeEnv(process.env),
           permissionMode: 'auto',
           ...(this.sessionId ? { resume: this.sessionId } : {}),
-          ...(profile
-            ? { systemPrompt: { type: 'preset', preset: 'claude_code', append: formatProfileForSystemPrompt(profile) } }
-            : {}),
+          systemPrompt: { type: 'preset', preset: 'claude_code', append: systemPromptAppend },
         },
       });
 

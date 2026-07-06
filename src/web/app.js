@@ -10,6 +10,8 @@ const el = {
   profileForm: document.getElementById('profile-form'),
   profileCompany: document.getElementById('profile-company'),
   profileMission: document.getElementById('profile-mission'),
+  profileCeoName: document.getElementById('profile-ceo-name'),
+  profileCeoPersonality: document.getElementById('profile-ceo-personality'),
   profileCancel: document.getElementById('profile-cancel'),
   dashboard: document.getElementById('dashboard'),
   accountLine: document.getElementById('account-line'),
@@ -21,6 +23,7 @@ const el = {
 };
 
 let lastProfile = null;
+let onboardingKickedOff = false;
 
 function api(path, options = {}) {
   return fetch(path, {
@@ -37,13 +40,14 @@ function show(section) {
 }
 
 function renderCompanyLine(profile) {
-  el.companyLine.textContent = profile ? `\u{00B7} ${profile.companyName}` : '';
+  el.companyLine.textContent = profile ? `\u{00B7} ${profile.ceoName} @ ${profile.companyName}` : '';
 }
 
 function populateProfileForm(profile) {
   el.profileCompany.value = profile?.companyName ?? '';
   el.profileMission.value = profile?.mission ?? '';
-  el.profileCancel.hidden = !profile;
+  el.profileCeoName.value = profile?.ceoName ?? '';
+  el.profileCeoPersonality.value = profile?.ceoPersonality ?? '';
 }
 
 async function checkStatus() {
@@ -58,13 +62,12 @@ async function checkStatus() {
     const info = result.accountInfo;
     el.accountLine.textContent = `Logged in as ${info.email ?? 'unknown'}${info.subscriptionType ? ` (${info.subscriptionType})` : ''}`;
     lastProfile = result.profile;
+    renderCompanyLine(lastProfile);
+    show('dashboard');
 
-    if (!lastProfile) {
-      populateProfileForm(null);
-      show('profile-setup');
-    } else {
-      renderCompanyLine(lastProfile);
-      show('dashboard');
+    if (!lastProfile && !onboardingKickedOff) {
+      onboardingKickedOff = true;
+      kickoffOnboarding();
     }
     return;
   }
@@ -76,6 +79,16 @@ async function checkStatus() {
 
 el.checkAgain.addEventListener('click', checkStatus);
 
+async function refreshProfileIfNeeded() {
+  if (lastProfile) return;
+  const res = await api('/api/profile');
+  const { profile } = await res.json();
+  if (profile) {
+    lastProfile = profile;
+    renderCompanyLine(profile);
+  }
+}
+
 el.profileForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const companyName = el.profileCompany.value.trim();
@@ -85,11 +98,18 @@ el.profileForm.addEventListener('submit', async (e) => {
   const res = await api('/api/profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyName, mission }),
+    body: JSON.stringify({
+      companyName,
+      mission,
+      ceoName: el.profileCeoName.value.trim(),
+      ceoPersonality: el.profileCeoPersonality.value.trim(),
+    }),
   });
   if (!res.ok) return;
 
-  lastProfile = { companyName, mission };
+  const profileRes = await api('/api/profile');
+  const { profile } = await profileRes.json();
+  lastProfile = profile;
   renderCompanyLine(lastProfile);
   show('dashboard');
 });
@@ -112,8 +132,8 @@ function appendMessage(className, text) {
   return div;
 }
 
-async function sendMessage(message) {
-  appendMessage('user', message);
+async function streamChat(message, { showUserBubble }) {
+  if (showUserBubble) appendMessage('user', message);
   const assistantEl = appendMessage('assistant', '');
   let assistantText = '';
 
@@ -155,6 +175,12 @@ async function sendMessage(message) {
       }
     }
   }
+
+  await refreshProfileIfNeeded();
+}
+
+function kickoffOnboarding() {
+  return streamChat('Please begin the onboarding conversation.', { showUserBubble: false });
 }
 
 el.form.addEventListener('submit', async (e) => {
@@ -164,7 +190,7 @@ el.form.addEventListener('submit', async (e) => {
   el.input.value = '';
   el.input.disabled = true;
   try {
-    await sendMessage(message);
+    await streamChat(message, { showUserBubble: true });
   } finally {
     el.input.disabled = false;
     el.input.focus();

@@ -25,15 +25,19 @@
     </section>
 
     <section id="profile-setup" hidden>
-      <h1>Tell Claude about your company</h1>
+      <h1>Edit company profile</h1>
       <form id="profile-form">
         <label for="profile-company">Company name</label>
         <input id="profile-company" type="text" maxlength="2000" required />
         <label for="profile-mission">Mission / description</label>
         <textarea id="profile-mission" maxlength="2000" required></textarea>
+        <label for="profile-ceo-name">CEO name</label>
+        <input id="profile-ceo-name" type="text" maxlength="2000" />
+        <label for="profile-ceo-personality">CEO personality / tone</label>
+        <input id="profile-ceo-personality" type="text" maxlength="2000" />
         <div class="profile-form-buttons">
-          <button type="submit">Save and continue</button>
-          <button id="profile-cancel" type="button" hidden>Cancel</button>
+          <button type="submit">Save</button>
+          <button id="profile-cancel" type="button">Cancel</button>
         </div>
       </form>
     </section>

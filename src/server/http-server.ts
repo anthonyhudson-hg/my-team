@@ -79,6 +79,12 @@ export function createServer(options: CreateServerOptions): http.Server {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/profile') {
+      const profile = await readProfile(cwd);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ profile }));
+      return;
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/profile') {
       let body: any;
       try {
