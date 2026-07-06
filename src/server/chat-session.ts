@@ -1,5 +1,6 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { sanitizeEnv } from './env.js';
+import { forLog, type Logger } from './logger.js';
 import { formatProfileForSystemPrompt, getOnboardingSystemPrompt, readProfile } from './profile.js';
 
 export type ChatEvent =
@@ -18,6 +19,8 @@ export class ChatSession {
   private sessionId: string | undefined;
   private turnInFlight = false;
 
+  constructor(private logger: Logger) {}
+
   isBusy(): boolean {
     return this.turnInFlight;
   }
@@ -34,19 +37,19 @@ export class ChatSession {
       const systemPromptAppend = onboarded
         ? formatProfileForSystemPrompt(profile)
         : getOnboardingSystemPrompt(cwd);
-      const q = query({
-        prompt: message,
-        options: {
-          cwd,
-          env: sanitizeEnv(process.env),
-          permissionMode: 'auto',
-          includePartialMessages: true,
-          ...(this.sessionId ? { resume: this.sessionId } : {}),
-          systemPrompt: { type: 'preset', preset: 'claude_code', append: systemPromptAppend },
-        },
-      });
+      const options = {
+        cwd,
+        env: sanitizeEnv(process.env),
+        permissionMode: 'auto' as const,
+        includePartialMessages: true,
+        ...(this.sessionId ? { resume: this.sessionId } : {}),
+        systemPrompt: { type: 'preset' as const, preset: 'claude_code' as const, append: systemPromptAppend },
+      };
+      this.logger.log({ type: 'chat-request', message, options: forLog(options) });
+      const q = query({ prompt: message, options });
 
       for await (const msg of q) {
+        this.logger.log({ type: 'chat-sdk-message', message: msg });
         if (msg.type === 'system' && msg.subtype === 'init') {
           this.sessionId = msg.session_id;
           yield { type: 'meta', sessionId: msg.session_id };
@@ -71,6 +74,7 @@ export class ChatSession {
         }
       }
     } catch (err) {
+      this.logger.log({ type: 'chat-error', error: String((err as Error)?.message ?? err), stack: (err as Error)?.stack });
       yield { type: 'error', message: String((err as Error)?.message ?? err) };
     } finally {
       this.turnInFlight = false;

@@ -1,5 +1,6 @@
 import { query, type AccountInfo } from '@anthropic-ai/claude-agent-sdk';
 import { sanitizeEnv } from './env.js';
+import { forLog, type Logger } from './logger.js';
 
 export type AuthCheckResult =
   | { ok: true; accountInfo: AccountInfo }
@@ -15,34 +16,42 @@ export type AuthCheckResult =
  * `system init` message arrives is enough to call accountInfo() without ever
  * dispatching a turn.
  */
-export async function checkAuth(cwd: string): Promise<AuthCheckResult> {
+export async function checkAuth(cwd: string, logger: Logger): Promise<AuthCheckResult> {
   const controller = new AbortController();
-  const q = query({
-    prompt: '',
-    options: {
-      cwd,
-      env: sanitizeEnv(process.env),
-      permissionMode: 'plan',
-      abortController: controller,
-      maxTurns: 1,
-    },
-  });
+  const options = {
+    cwd,
+    env: sanitizeEnv(process.env),
+    permissionMode: 'plan' as const,
+    abortController: controller,
+    maxTurns: 1,
+  };
+  logger.log({ type: 'auth-check-request', options: forLog(options) });
+  const q = query({ prompt: '', options });
 
   try {
     for await (const msg of q) {
+      logger.log({ type: 'auth-check-sdk-message', message: msg });
       if (msg.type === 'system' && msg.subtype === 'init') {
         const accountInfo = await q.accountInfo();
+        logger.log({ type: 'auth-check-account-info', accountInfo });
         controller.abort();
         if (!accountInfo.email && !accountInfo.apiProvider) {
-          return { ok: false, reason: 'not-authenticated' };
+          const result: AuthCheckResult = { ok: false, reason: 'not-authenticated' };
+          logger.log({ type: 'auth-check-result', result });
+          return result;
         }
-        return { ok: true, accountInfo };
+        const result: AuthCheckResult = { ok: true, accountInfo };
+        logger.log({ type: 'auth-check-result', result });
+        return result;
       }
     }
-    return { ok: false, reason: 'not-authenticated' };
+    const result: AuthCheckResult = { ok: false, reason: 'not-authenticated' };
+    logger.log({ type: 'auth-check-result', result });
+    return result;
   } catch (err) {
     controller.abort();
     const message = String((err as Error)?.message ?? err);
+    logger.log({ type: 'auth-check-error', error: message, stack: (err as Error)?.stack });
     if (/native binary not found|ENOENT|not recognized as an internal/i.test(message)) {
       return { ok: false, reason: 'cli-missing' };
     }

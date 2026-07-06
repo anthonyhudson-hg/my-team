@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkAuth } from './auth-check.js';
 import { ChatSession } from './chat-session.js';
+import type { Logger } from './logger.js';
 import { readProfile, validateProfileInput, writeProfile } from './profile.js';
 import { tokensMatch } from './token.js';
 
@@ -21,6 +22,7 @@ export interface CreateServerOptions {
   token: string;
   /** Mutable box so the real port (known only after listen() resolves) can be read at request time. */
   portRef: { port: number };
+  logger: Logger;
 }
 
 function isAllowedHost(hostHeader: string | undefined, port: number): boolean {
@@ -40,8 +42,8 @@ async function readJsonBody(req: http.IncomingMessage): Promise<any> {
 }
 
 export function createServer(options: CreateServerOptions): http.Server {
-  const { cwd, token, portRef } = options;
-  const chatSession = new ChatSession();
+  const { cwd, token, portRef, logger } = options;
+  const chatSession = new ChatSession(logger);
 
   return http.createServer(async (req, res) => {
     if (!isAllowedHost(req.headers.host, portRef.port)) {
@@ -73,9 +75,14 @@ export function createServer(options: CreateServerOptions): http.Server {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/status') {
-      const result = await checkAuth(cwd);
+      const result = await checkAuth(cwd, logger);
       const body = result.ok ? { ...result, profile: await readProfile(cwd) } : result;
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/meta') {
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ logFilePath: logger.filePath }));
       return;
     }
 

@@ -7,6 +7,22 @@ const el = {
   notAuthenticated: document.getElementById('onboarding-not-authenticated'),
   checkAgain: document.getElementById('check-again'),
   appShell: document.getElementById('app-shell'),
+
+  railHome: document.getElementById('rail-home'),
+  railMessages: document.getElementById('rail-messages'),
+  railProfile: document.getElementById('rail-profile'),
+  railSettings: document.getElementById('rail-settings'),
+
+  pageHome: document.getElementById('page-home'),
+  pageMessages: document.getElementById('page-messages'),
+  pageProfile: document.getElementById('page-profile'),
+  pageSettings: document.getElementById('page-settings'),
+
+  homeAvatar: document.getElementById('home-avatar'),
+  homeGreeting: document.getElementById('home-greeting'),
+  homeSub: document.getElementById('home-sub'),
+  homeGoMessages: document.getElementById('home-go-messages'),
+
   workspaceName: document.getElementById('workspace-name'),
   navGeneral: document.getElementById('nav-general'),
   navCeo: document.getElementById('nav-ceo'),
@@ -15,7 +31,6 @@ const el = {
   ceoStatusDot: document.getElementById('ceo-status-dot'),
   channelTitle: document.getElementById('channel-title'),
   channelSubtitle: document.getElementById('channel-subtitle'),
-  editProfile: document.getElementById('edit-profile'),
   channelGeneral: document.getElementById('channel-general'),
   channelCeo: document.getElementById('channel-ceo'),
   messages: document.getElementById('messages'),
@@ -23,19 +38,25 @@ const el = {
   typingAvatar: document.getElementById('typing-avatar'),
   form: document.getElementById('chat-form'),
   input: document.getElementById('chat-input'),
-  profileModalBackdrop: document.getElementById('profile-modal-backdrop'),
+
   profileForm: document.getElementById('profile-form'),
   profileCompany: document.getElementById('profile-company'),
   profileMission: document.getElementById('profile-mission'),
   profileCeoName: document.getElementById('profile-ceo-name'),
   profileCeoPersonality: document.getElementById('profile-ceo-personality'),
-  profileCancel: document.getElementById('profile-cancel'),
+  profileSavedHint: document.getElementById('profile-saved-hint'),
+
+  settingsAccount: document.getElementById('settings-account'),
+  settingsLogPath: document.getElementById('settings-log-path'),
 };
 
 let lastProfile = null;
+let lastAccountInfo = null;
 let onboardingKickedOff = false;
+let currentPage = 'messages';
 let currentChannel = 'ceo';
 let statusState = 'offline';
+let metaCache = null;
 
 function api(path, options = {}) {
   return fetch(path, {
@@ -54,7 +75,8 @@ function renderProfileUI(profile) {
   const ceoName = profile?.ceoName || 'your AI CEO';
   el.ceoNavName.textContent = ceoName;
   el.ceoAvatar.textContent = getCeoInitial();
-  if (currentChannel === 'ceo') el.channelTitle.textContent = ceoName;
+  if (currentPage === 'messages' && currentChannel === 'ceo') el.channelTitle.textContent = ceoName;
+  if (currentPage === 'home') renderHomePage();
 }
 
 function setStatus(state) {
@@ -62,7 +84,7 @@ function setStatus(state) {
   el.ceoStatusDot.classList.remove('online', 'typing');
   if (state === 'online') el.ceoStatusDot.classList.add('online');
   else if (state === 'typing') el.ceoStatusDot.classList.add('typing');
-  if (currentChannel === 'ceo') {
+  if (currentPage === 'messages' && currentChannel === 'ceo') {
     el.channelSubtitle.textContent = state === 'typing' ? 'Typing…' : state === 'online' ? 'Active' : 'Offline';
   }
 }
@@ -73,7 +95,6 @@ function selectChannel(channel) {
   el.navCeo.classList.toggle('active', channel === 'ceo');
   el.channelGeneral.hidden = channel !== 'general';
   el.channelCeo.hidden = channel !== 'ceo';
-  el.editProfile.hidden = channel !== 'ceo';
   if (channel === 'general') {
     el.channelTitle.textContent = '# general';
     el.channelSubtitle.textContent = '';
@@ -86,6 +107,57 @@ function selectChannel(channel) {
 el.navGeneral.addEventListener('click', () => selectChannel('general'));
 el.navCeo.addEventListener('click', () => selectChannel('ceo'));
 
+function populateProfileForm(profile) {
+  el.profileCompany.value = profile?.companyName ?? '';
+  el.profileMission.value = profile?.mission ?? '';
+  el.profileCeoName.value = profile?.ceoName ?? '';
+  el.profileCeoPersonality.value = profile?.ceoPersonality ?? '';
+}
+
+function renderHomePage() {
+  el.homeAvatar.textContent = getCeoInitial();
+  const ceoName = lastProfile?.ceoName || 'your AI CEO';
+  const companyName = lastProfile?.companyName;
+  el.homeGreeting.textContent = companyName ? `Welcome to ${companyName}` : 'Welcome to my-team';
+  el.homeSub.textContent = lastProfile?.onboardingComplete
+    ? `${ceoName} is ready and waiting in Messages.`
+    : `Head to Messages to finish setting up ${ceoName}.`;
+}
+
+async function renderSettingsPage() {
+  el.settingsAccount.textContent = lastAccountInfo
+    ? `${lastAccountInfo.email ?? 'unknown'}${lastAccountInfo.subscriptionType ? ` (${lastAccountInfo.subscriptionType})` : ''}`
+    : 'unknown';
+  if (!metaCache) {
+    const res = await api('/api/meta');
+    metaCache = await res.json();
+  }
+  el.settingsLogPath.textContent = metaCache.logFilePath;
+}
+
+function selectPage(page) {
+  currentPage = page;
+  el.railHome.classList.toggle('active', page === 'home');
+  el.railMessages.classList.toggle('active', page === 'messages');
+  el.railProfile.classList.toggle('active', page === 'profile');
+  el.railSettings.classList.toggle('active', page === 'settings');
+  el.pageHome.hidden = page !== 'home';
+  el.pageMessages.hidden = page !== 'messages';
+  el.pageProfile.hidden = page !== 'profile';
+  el.pageSettings.hidden = page !== 'settings';
+
+  if (page === 'home') renderHomePage();
+  else if (page === 'profile') populateProfileForm(lastProfile);
+  else if (page === 'settings') renderSettingsPage();
+  else if (page === 'messages') selectChannel(currentChannel);
+}
+
+el.railHome.addEventListener('click', () => selectPage('home'));
+el.railMessages.addEventListener('click', () => selectPage('messages'));
+el.railProfile.addEventListener('click', () => selectPage('profile'));
+el.railSettings.addEventListener('click', () => selectPage('settings'));
+el.homeGoMessages.addEventListener('click', () => selectPage('messages'));
+
 async function checkStatus() {
   el.loading.hidden = false;
   el.onboarding.hidden = true;
@@ -96,11 +168,12 @@ async function checkStatus() {
   el.loading.hidden = true;
 
   if (result.ok) {
+    lastAccountInfo = result.accountInfo;
     lastProfile = result.profile;
     renderProfileUI(lastProfile);
-    selectChannel('ceo');
     el.appShell.hidden = false;
     setStatus('online');
+    selectPage('messages');
 
     if (!lastProfile?.onboardingComplete && !onboardingKickedOff) {
       onboardingKickedOff = true;
@@ -126,26 +199,6 @@ async function refreshProfileIfNeeded() {
   }
 }
 
-function populateProfileForm(profile) {
-  el.profileCompany.value = profile?.companyName ?? '';
-  el.profileMission.value = profile?.mission ?? '';
-  el.profileCeoName.value = profile?.ceoName ?? '';
-  el.profileCeoPersonality.value = profile?.ceoPersonality ?? '';
-}
-
-el.editProfile.addEventListener('click', () => {
-  populateProfileForm(lastProfile);
-  el.profileModalBackdrop.hidden = false;
-});
-
-el.profileCancel.addEventListener('click', () => {
-  el.profileModalBackdrop.hidden = true;
-});
-
-el.profileModalBackdrop.addEventListener('click', (e) => {
-  if (e.target === el.profileModalBackdrop) el.profileModalBackdrop.hidden = true;
-});
-
 el.profileForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const companyName = el.profileCompany.value.trim();
@@ -168,7 +221,11 @@ el.profileForm.addEventListener('submit', async (e) => {
   const { profile } = await profileRes.json();
   lastProfile = profile;
   renderProfileUI(lastProfile);
-  el.profileModalBackdrop.hidden = true;
+
+  el.profileSavedHint.hidden = false;
+  setTimeout(() => {
+    el.profileSavedHint.hidden = true;
+  }, 2000);
 });
 
 function escapeHtml(str) {

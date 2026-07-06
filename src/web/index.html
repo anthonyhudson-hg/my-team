@@ -24,77 +24,142 @@
   </section>
 
   <div id="app-shell" hidden>
-    <aside id="sidebar">
-      <div id="workspace-header">
-        <span id="workspace-name">my-team</span>
+    <nav id="icon-rail">
+      <div id="rail-logo" aria-hidden="true"></div>
+
+      <button class="rail-item" id="rail-home" type="button" title="Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11.5 12 4l9 7.5" />
+          <path d="M5.5 10v9a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-9" />
+          <path d="M9.5 20v-6h5v6" />
+        </svg>
+        <span>Home</span>
+      </button>
+
+      <button class="rail-item" id="rail-messages" type="button" title="Messages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9.5L5 20v-4H6a2 2 0 0 1-2-2z" />
+        </svg>
+        <span>Messages</span>
+      </button>
+
+      <button class="rail-item" id="rail-profile" type="button" title="Profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8.3" r="3.3" />
+          <path d="M5 19.3c1.3-3.1 4-4.8 7-4.8s5.7 1.7 7 4.8" />
+        </svg>
+        <span>Profile</span>
+      </button>
+
+      <button class="rail-item" id="rail-settings" type="button" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <circle cx="15" cy="7" r="2" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <circle cx="9" cy="12" r="2" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+          <circle cx="13" cy="17" r="2" />
+        </svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <div class="page" id="page-home" hidden>
+      <header class="page-header"><h1>Home</h1></header>
+      <div class="page-body home-hero">
+        <span class="avatar avatar-lg" id="home-avatar">?</span>
+        <h2 id="home-greeting">Welcome</h2>
+        <p id="home-sub" class="muted"></p>
+        <button id="home-go-messages" type="button">Open Messages</button>
       </div>
-      <nav id="nav">
-        <div class="nav-section-label">Channels</div>
-        <button class="nav-item" id="nav-general" type="button">
-          <span class="nav-hash">#</span><span>general</span>
-        </button>
-        <div class="nav-section-label">Direct Messages</div>
-        <button class="nav-item nav-item-dm" id="nav-ceo" type="button">
-          <span class="avatar-wrap">
-            <span class="avatar" id="ceo-avatar">?</span>
-            <span class="status-dot" id="ceo-status-dot"></span>
-          </span>
-          <span class="nav-item-label" id="ceo-nav-name">your AI CEO</span>
-        </button>
-      </nav>
-    </aside>
+    </div>
 
-    <main id="main-pane">
-      <header id="main-header">
-        <div id="header-title-group">
-          <span id="channel-title"></span>
-          <span id="channel-subtitle"></span>
+    <div class="page" id="page-messages" hidden>
+      <aside id="sidebar">
+        <div id="workspace-header">
+          <span id="workspace-name">my-team</span>
         </div>
-        <button id="edit-profile" type="button" hidden>Edit profile</button>
-      </header>
+        <nav id="nav">
+          <div class="nav-section-label">Channels</div>
+          <button class="nav-item" id="nav-general" type="button">
+            <span class="nav-hash">#</span><span>general</span>
+          </button>
+          <div class="nav-section-label">Direct Messages</div>
+          <button class="nav-item nav-item-dm" id="nav-ceo" type="button">
+            <span class="avatar-wrap">
+              <span class="avatar" id="ceo-avatar">?</span>
+              <span class="status-dot" id="ceo-status-dot"></span>
+            </span>
+            <span class="nav-item-label" id="ceo-nav-name">your AI CEO</span>
+          </button>
+        </nav>
+      </aside>
 
-      <section id="channel-general" hidden>
-        <div class="empty-state">
-          <p>This is the very beginning of <strong>#general</strong>.</p>
-        </div>
-      </section>
+      <main id="main-pane">
+        <header id="main-header">
+          <div id="header-title-group">
+            <span id="channel-title"></span>
+            <span id="channel-subtitle"></span>
+          </div>
+        </header>
 
-      <section id="channel-ceo" hidden>
-        <div class="banner">
-          Tool actions (file edits, shell commands) are auto-approved by Claude's own safety classifier &mdash;
-          not reviewed by you turn-by-turn.
-        </div>
-        <div id="messages"></div>
-        <div id="typing-indicator" hidden>
-          <span class="avatar" id="typing-avatar">?</span>
-          <span class="typing-dots"><i></i><i></i><i></i></span>
-        </div>
-        <form id="chat-form">
-          <input id="chat-input" type="text" placeholder="Message your CEO&hellip;" autocomplete="off" />
-          <button type="submit">Send</button>
+        <section id="channel-general" hidden>
+          <div class="empty-state">
+            <p>This is the very beginning of <strong>#general</strong>.</p>
+          </div>
+        </section>
+
+        <section id="channel-ceo" hidden>
+          <div class="banner">
+            Tool actions (file edits, shell commands) are auto-approved by Claude's own safety classifier &mdash;
+            not reviewed by you turn-by-turn.
+          </div>
+          <div id="messages"></div>
+          <div id="typing-indicator" hidden>
+            <span class="avatar" id="typing-avatar">?</span>
+            <span class="typing-dots"><i></i><i></i><i></i></span>
+          </div>
+          <form id="chat-form">
+            <input id="chat-input" type="text" placeholder="Message your CEO&hellip;" autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <div class="page" id="page-profile" hidden>
+      <header class="page-header"><h1>Company Profile</h1></header>
+      <div class="page-body">
+        <form id="profile-form">
+          <label for="profile-company">Company name</label>
+          <input id="profile-company" type="text" maxlength="2000" required />
+          <label for="profile-mission">Mission / description</label>
+          <textarea id="profile-mission" maxlength="2000" required></textarea>
+          <label for="profile-ceo-name">CEO name</label>
+          <input id="profile-ceo-name" type="text" maxlength="2000" />
+          <label for="profile-ceo-personality">CEO personality / tone</label>
+          <input id="profile-ceo-personality" type="text" maxlength="2000" />
+          <div class="profile-form-buttons">
+            <button type="submit" id="profile-save">Save</button>
+            <span id="profile-saved-hint" hidden>Saved</span>
+          </div>
         </form>
-      </section>
-    </main>
-  </div>
+      </div>
+    </div>
 
-  <div id="profile-modal-backdrop" hidden>
-    <section id="profile-setup">
-      <h1>Edit company profile</h1>
-      <form id="profile-form">
-        <label for="profile-company">Company name</label>
-        <input id="profile-company" type="text" maxlength="2000" required />
-        <label for="profile-mission">Mission / description</label>
-        <textarea id="profile-mission" maxlength="2000" required></textarea>
-        <label for="profile-ceo-name">CEO name</label>
-        <input id="profile-ceo-name" type="text" maxlength="2000" />
-        <label for="profile-ceo-personality">CEO personality / tone</label>
-        <input id="profile-ceo-personality" type="text" maxlength="2000" />
-        <div class="profile-form-buttons">
-          <button type="submit">Save</button>
-          <button id="profile-cancel" type="button">Cancel</button>
+    <div class="page" id="page-settings" hidden>
+      <header class="page-header"><h1>Settings</h1></header>
+      <div class="page-body">
+        <div class="settings-row">
+          <span class="settings-label">Account</span>
+          <span id="settings-account" class="settings-value"></span>
         </div>
-      </form>
-    </section>
+        <div class="settings-row">
+          <span class="settings-label">Log file</span>
+          <code id="settings-log-path" class="settings-value"></code>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/app.js"></script>
