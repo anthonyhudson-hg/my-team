@@ -1,0 +1,159 @@
+#app {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wall);
+  padding: 26px;
+}
+
+#window {
+  position: relative;
+  width: min(1256px, 96vw);
+  height: min(838px, 92vh);
+  background: var(--win-bg);
+  border-radius: var(--window-radius);
+  overflow: hidden;
+  display: flex;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1), 0 44px 90px -24px var(--shadow);
+  outline: 1px solid var(--ring);
+}
+
+/* ---- primary rail ---- */
+
+#rail {
+  flex: 0 0 var(--rail-w);
+  background: var(--rail-bg);
+  border-right: 1px solid var(--rail-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 var(--space-7);
+  gap: var(--space-4);
+}
+
+#rail-logo {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+#rail-divider {
+  width: 26px;
+  height: 1px;
+  background: var(--rail-border);
+  margin: 0 0 var(--space-1);
+}
+
+#rail-spacer {
+  flex: 1;
+}
+
+/* ---- right area ---- */
+
+#right-area {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+.section {
+  flex: 1;
+  background: var(--content-bg);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.section-header {
+  height: var(--header-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6) 0 var(--space-9);
+  border-bottom: 1px solid var(--border);
+  background: var(--header-bg);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  z-index: 10;
+}
+
+.section-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.section-centered {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.empty-page {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+/* ---- chats sidebar ---- */
+
+#sidebar {
+  flex: 0 0 var(--sidebar-w);
+  background: var(--side-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#sidebar-header {
+  height: var(--header-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4) 0 var(--space-7);
+  border-bottom: 1px solid var(--rail-border);
+}
+
+#sidebar-search-wrap {
+  padding: 11px 10px 7px;
+  flex: 0 0 auto;
+}
+
+#sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) 0 var(--space-6);
+  min-height: 0;
+}
+
+.sidebar-section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-8) var(--space-7) var(--space-3);
+}
+
+#sidebar-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--rail-border);
+  padding: var(--space-5);
+}
+
+/* ---- composer area ---- */
+
+#composer-area {
+  flex: 0 0 auto;
+  padding: 0 var(--space-9) var(--space-8);
+}

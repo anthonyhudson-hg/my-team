@@ -1,6 +1,6 @@
 {
   "name": "@harborgroup/my-team",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Chat with your local Claude Code subscription from a web dashboard, scoped to the current repo. Dev-only.",
   "type": "module",
   "bin": {
@@ -16,8 +16,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-web-assets.mjs",
-    "prepublishOnly": "npm run build"
+    "build": "tsc -p tsconfig.json && node scripts/copy-web-assets.mjs && node scripts/prepare-vendor-assets.mjs",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.201",
@@ -26,8 +27,13 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@fontsource/hanken-grotesk": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@phosphor-icons/web": "^2.1.2",
     "@types/node": "^26.1.0",
-    "typescript": "^6.0.3"
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "license": "MIT",
   "repository": {

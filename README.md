@@ -26,17 +26,23 @@ Chat runs with this repo as Claude's working directory, and tool calls (file edi
 
 ## Your AI CEO
 
-The first time you run `npm run team` in a repo, Claude opens the conversation itself — it introduces itself and asks about your company (name, mission), what to call itself, and what personality it should have. Once it has answers, it writes `.my-team/profile.json` itself and adopts that identity from then on: not "an assistant with some context," but your company's AI CEO by name, on every chat turn (via a strong identity system prompt — weak "you're also helping company X" framing gets treated as low-trust incidental context and can get second-guessed; asserting it as configured identity doesn't).
+The first time you run `npm run team` in a repo, Claude opens the conversation itself — it introduces itself and asks about you (your name), your company (name, mission), what to call itself, and what personality it should have. Once it has answers, it writes `.my-team/profile.json` itself and adopts that identity from then on: not "an assistant with some context," but your company's AI CEO by name, on every chat turn (via a strong identity system prompt — weak "you're also helping company X" framing gets treated as low-trust incidental context and can get second-guessed; asserting it as configured identity doesn't).
 
-**Commit `.my-team/profile.json`** — don't gitignore it. It's shared, non-sensitive team config, the same category as a checked-in `CLAUDE.md`: the whole point of it living per-repo is that teammates cloning the repo share the same CEO persona without re-onboarding. Use the "Edit profile" button on the dashboard to adjust the company name, mission, CEO name, or personality later; changes take effect on the next chat turn without restarting the server.
+**Commit `.my-team/profile.json`** — don't gitignore it. It's shared, non-sensitive team config, the same category as a checked-in `CLAUDE.md`: the whole point of it living per-repo is that teammates cloning the repo share the same CEO persona without re-onboarding. Edit your name, company name, mission, CEO name, or personality any time from the Settings page; changes take effect on the next chat turn without restarting the server.
 
 ## Interface
 
-An icon rail (Home / Messages / Profile / Settings) plus a Slack-style Messages page: a `#general` channel (placeholder for now) and a DM with your CEO, real token-by-token streaming (via the SDK's `includePartialMessages`), a typing indicator, and a status dot on the CEO's avatar reflecting connection state. It's plain static HTML/CSS/JS talking to the backend over local HTTP + SSE — no browser-only assumptions — so a future native (Tauri) shell can point at the same server without a rewrite; there's no Tauri wrapper yet.
+A Slack-style shell: a primary rail (Home / Chats / Activity / Files), a sidebar with a `#general` channel and a DM with your AI CEO, real token-by-token streaming (via the SDK's `includePartialMessages`), a typing indicator, and a command palette (`⌘K`/`Ctrl+K`) for jumping anywhere. Fonts and icons are self-hosted (no CDN dependency — this is a local tool, it shouldn't need the internet to render its own chrome). It's plain static HTML/CSS/JS (native ES modules, no bundler, no build step) talking to the backend over local HTTP + SSE — no browser-only assumptions — so a future native (Tauri) shell could point at the same server without a rewrite; there's no Tauri wrapper today, and none is planned unless that changes.
+
+`#general` has no multi-user backend (my-team is a single-developer tool) — it's a plain persisted notes channel (`.my-team/general-history.jsonl`) rather than a real team channel.
+
+## Appearance
+
+Settings has a theme (Contrast / Light / Dark) and accent color picker, applied live and persisted server-side to `.my-team/ui-prefs.json` — not browser `localStorage`, since the dashboard's port is randomized on every launch, which would otherwise reset the preference on every restart.
 
 ## Model & effort
 
-Set a default model and reasoning effort for your CEO on the Profile page (fetched live from the SDK's `supportedModels()` — the effort dropdown only ever offers levels the chosen model actually supports, e.g. Haiku offers none). Override either per message from a small selector above the chat input; each response shows a small badge with the model actually used.
+Set a default model and reasoning effort for your CEO on the Settings page (fetched live from the SDK's `supportedModels()` — the effort dropdown only ever offers levels the chosen model actually supports, e.g. Haiku offers none). Override either per message from a small selector above the chat input; each response shows a small badge with the model actually used.
 
 ## Updates
 
@@ -62,6 +68,10 @@ This dashboard is itself an ordinary Node process running inside the repo it man
 
 The Settings page has a "Reset to factory settings" button (behind a confirmation step) that deletes `.my-team/profile.json` and `.my-team/chat-history.jsonl` and drops the resumed Claude session, so the very next message starts fresh onboarding — no restart needed, no leftover context from the old profile.
 
+## Testing
+
+`npm test` runs the Vitest suite for the frontend's pure logic (streaming-response parser, chat-history replay/timeline reconstruction, checklist derivation, the tiny state store) — DOM rendering and the backend's HTTP layer are covered by manual/browser verification, not automated tests, at this stage.
+
 ## Status
 
-v1.7: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets + persisted chat history + dev-server-restart safety guardrail + factory reset. No multi-user support, no `#general` backend (sidebar placeholder only).
+v2.0: CLI-auth onboarding + conversational founder/company/CEO-persona onboarding + full Slack-style shell (rail, sidebar, command palette, theming) with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets + persisted chat & `#general` history + dev-server-restart safety guardrail + factory reset. No multi-user support; `#general` is a single-participant notes channel, not a real team channel; Activity and Files are empty-state placeholders with no backend yet.

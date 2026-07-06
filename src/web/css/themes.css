@@ -1,0 +1,84 @@
+/*
+ * Three theme presets, applied via [data-theme] on <html>. Persisted
+ * server-side (see ui-prefs.ts) rather than localStorage, because the
+ * dashboard's port — and therefore its browser storage origin — changes on
+ * every restart.
+ */
+:root,
+[data-theme='Contrast'] {
+  --wall: linear-gradient(155deg, #eceef4, #e0e2ec);
+  --win-bg: #ffffff;
+  --rail-bg: #0e0e11;
+  --rail-border: rgba(255, 255, 255, 0.08);
+  --side-bg: #17171b;
+  --side-text: rgba(255, 255, 255, 0.92);
+  --side-muted: rgba(255, 255, 255, 0.56);
+  --side-subtle: rgba(255, 255, 255, 0.4);
+  --side-hover: rgba(255, 255, 255, 0.07);
+  --side-active: var(--accent);
+  --content-bg: #ffffff;
+  --content-bg-2: rgba(0, 0, 0, 0.035);
+  --header-bg: rgba(255, 255, 255, 0.75);
+  --text: #1b1b20;
+  --muted: #6c6c76;
+  --subtle: #9b9ba4;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-2: rgba(0, 0, 0, 0.13);
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.09);
+  --composer-bg: #ffffff;
+  --ring: rgba(0, 0, 0, 0.09);
+  --shadow: rgba(17, 17, 26, 0.45);
+}
+
+[data-theme='Light'] {
+  --wall: linear-gradient(155deg, #f1f2f6, #e6e7ee);
+  --win-bg: #ffffff;
+  --rail-bg: #e8e8ed;
+  --rail-border: rgba(0, 0, 0, 0.06);
+  --side-bg: #f4f4f7;
+  --side-text: #26262c;
+  --side-muted: #6d6d77;
+  --side-subtle: #a2a2ab;
+  --side-hover: rgba(0, 0, 0, 0.045);
+  --side-active: #ffffff;
+  --content-bg: #ffffff;
+  --content-bg-2: rgba(0, 0, 0, 0.035);
+  --header-bg: rgba(255, 255, 255, 0.78);
+  --text: #1b1b20;
+  --muted: #6c6c76;
+  --subtle: #9b9ba4;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-2: rgba(0, 0, 0, 0.13);
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.09);
+  --composer-bg: #ffffff;
+  --ring: rgba(0, 0, 0, 0.09);
+  --shadow: rgba(17, 17, 26, 0.26);
+}
+
+[data-theme='Dark'] {
+  --wall: linear-gradient(155deg, #101014, #08080a);
+  --win-bg: #161619;
+  --rail-bg: #0a0a0c;
+  --rail-border: rgba(255, 255, 255, 0.06);
+  --side-bg: #111114;
+  --side-text: rgba(255, 255, 255, 0.9);
+  --side-muted: rgba(255, 255, 255, 0.52);
+  --side-subtle: rgba(255, 255, 255, 0.38);
+  --side-hover: rgba(255, 255, 255, 0.06);
+  --side-active: var(--accent);
+  --content-bg: #161619;
+  --content-bg-2: rgba(255, 255, 255, 0.05);
+  --header-bg: rgba(22, 22, 25, 0.72);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.55);
+  --subtle: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-2: rgba(255, 255, 255, 0.16);
+  --card-bg: #1c1c20;
+  --card-border: rgba(255, 255, 255, 0.09);
+  --composer-bg: #1e1e22;
+  --ring: rgba(255, 255, 255, 0.1);
+  --shadow: rgba(0, 0, 0, 0.6);
+}

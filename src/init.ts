@@ -20,12 +20,17 @@ function addTeamScript(repoPackageJsonPath: string): void {
   console.log('Added "npm run team" script to package.json.');
 }
 
-// Only these two files are ignored — .my-team/profile.json is deliberately
-// committed (see README: it's shared, non-sensitive team config, the same
-// category as CLAUDE.md). Chat history can contain arbitrary conversation
-// content and server.pid is per-machine-run ephemeral state; neither
-// belongs in git.
-const GITIGNORE_ENTRIES = ['.my-team/chat-history.jsonl', '.my-team/server.pid'];
+// .my-team/profile.json is deliberately NOT in this list — it's committed
+// (see README: it's shared, non-sensitive team config, the same category as
+// CLAUDE.md). Everything below is either arbitrary conversation content,
+// a personal display preference, or per-machine-run ephemeral state; none
+// of it belongs in git.
+const GITIGNORE_ENTRIES = [
+  '.my-team/chat-history.jsonl',
+  '.my-team/general-history.jsonl',
+  '.my-team/ui-prefs.json',
+  '.my-team/server.pid',
+];
 
 export function ensureGitignore(cwd: string): void {
   const gitignorePath = path.join(cwd, '.gitignore');

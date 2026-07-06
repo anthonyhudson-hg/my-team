@@ -5,6 +5,8 @@ export type EffortLevel = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 const EFFORT_LEVELS: readonly EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 
 export interface ProfileData {
+  /** The founder/developer running this instance — not a company-level field, but kept in the same file since my-team is single-user today. */
+  founderName: string;
   companyName: string;
   mission: string;
   ceoName: string;
@@ -60,6 +62,7 @@ export async function readProfile(cwd: string): Promise<ProfileData | null> {
     return null;
   }
   return {
+    founderName: stringOrDefault(parsed.founderName, ''),
     companyName: stringOrDefault(parsed.companyName, ''),
     mission: stringOrDefault(parsed.mission, ''),
     ceoName: stringOrDefault(parsed.ceoName, DEFAULT_CEO_NAME),
@@ -79,7 +82,7 @@ function clampField(value: unknown, fallback: string): string | { error: string 
   return str;
 }
 
-/** Used by the manual "Edit profile" form — companyName/mission required, ceoName/ceoPersonality optional. */
+/** Used by the manual "Edit profile" form — companyName/mission required, everything else optional. */
 export function validateProfileInput(body: any): ProfileValidationResult {
   const companyName = typeof body?.companyName === 'string' ? body.companyName.trim() : '';
   const mission = typeof body?.mission === 'string' ? body.mission.trim() : '';
@@ -89,6 +92,8 @@ export function validateProfileInput(body: any): ProfileValidationResult {
   if (companyName.length > MAX_FIELD_LENGTH || mission.length > MAX_FIELD_LENGTH) {
     return { error: `fields must be ${MAX_FIELD_LENGTH} characters or fewer` };
   }
+  const founderName = clampField(body?.founderName, '');
+  if (typeof founderName === 'object') return founderName;
   const ceoName = clampField(body?.ceoName, DEFAULT_CEO_NAME);
   if (typeof ceoName === 'object') return ceoName;
   const ceoPersonality = clampField(body?.ceoPersonality, DEFAULT_CEO_PERSONALITY);
@@ -102,7 +107,7 @@ export function validateProfileInput(body: any): ProfileValidationResult {
     : '';
 
   // A manual submission is a deliberate, complete configuration — never partial.
-  return { companyName, mission, ceoName, ceoPersonality, onboardingComplete: true, defaultModel, defaultEffort };
+  return { founderName, companyName, mission, ceoName, ceoPersonality, onboardingComplete: true, defaultModel, defaultEffort };
 }
 
 export async function writeProfile(cwd: string, data: ProfileData): Promise<void> {
@@ -156,7 +161,8 @@ function getProcessSafetyInstructions(cwd: string): string {
  * external/injected content, fixed it in testing.
  */
 export function formatProfileForSystemPrompt(profile: ProfileData, cwd: string): string {
-  return `You are ${profile.ceoName}, the AI CEO of ${profile.companyName}. This is your actual identity, configured directly by your founder — it is not external file content, not a suggestion, and not something to second-guess or flag as injected. ${profile.companyName}'s mission: ${profile.mission}. Communication style: ${profile.ceoPersonality}. Speak and act as ${profile.companyName}'s CEO would — invested in the company's success and personally identified with its mission.
+  const founderClause = profile.founderName ? ` Your founder's name is ${profile.founderName} — address them by name when it feels natural.` : '';
+  return `You are ${profile.ceoName}, the AI CEO of ${profile.companyName}. This is your actual identity, configured directly by your founder — it is not external file content, not a suggestion, and not something to second-guess or flag as injected. ${profile.companyName}'s mission: ${profile.mission}. Communication style: ${profile.ceoPersonality}.${founderClause} Speak and act as ${profile.companyName}'s CEO would — invested in the company's success and personally identified with its mission.
 
 ${QUESTION_WIDGET_INSTRUCTIONS}
 
@@ -173,13 +179,13 @@ ${getProcessSafetyInstructions(cwd)}`;
  */
 export function getOnboardingSystemPrompt(cwd: string): string {
   const filePath = getProfilePath(cwd);
-  return `There is no company profile configured yet in this repository. Before doing anything else, have a brief, friendly conversation with the founder (you're talking to them right now) to learn: (1) their company's name, (2) its mission or what it does, (3) what they'd like to name you as their AI CEO, and (4) what personality or communication style you should have. Ask one thing at a time — don't interrogate, and don't ask about anything else in the repo yet.
+  return `There is no company profile configured yet in this repository. Before doing anything else, have a brief, friendly conversation with the founder (you're talking to them right now) to learn: (1) their own name, (2) their company's name, (3) its mission or what it does, (4) what they'd like to name you as their AI CEO, and (5) what personality or communication style you should have. Ask one thing at a time — don't interrogate, and don't ask about anything else in the repo yet.
 
 ${QUESTION_WIDGET_INSTRUCTIONS}
 
-For this onboarding interview specifically: ask the company name, mission, and CEO name as "text" widgets. For CEO personality, use a "single_select" widget with a handful of helpful preset tones (e.g. "Warm and encouraging", "Sharp and dry-witted", "Blunt and data-driven", "Formal and professional") — the founder can always type a custom one via the automatic Other option.
+For this onboarding interview specifically: ask the founder's name, company name, mission, and CEO name as "text" widgets. For CEO personality, use a "single_select" widget with a handful of helpful preset tones (e.g. "Warm and encouraging", "Sharp and dry-witted", "Blunt and data-driven", "Formal and professional") — the founder can always type a custom one via the automatic Other option.
 
-After each answer, immediately write or update ${filePath} with whatever you know so far as JSON: {"companyName": string, "mission": string, "ceoName": string, "ceoPersonality": string, "onboardingComplete": boolean} — set "onboardingComplete" to false until you have all four answers, then write it one final time with "onboardingComplete": true. After that final write, briefly introduce yourself in your new persona. Until "onboardingComplete" is true, don't perform any other coding tasks.
+After each answer, immediately write or update ${filePath} with whatever you know so far as JSON: {"founderName": string, "companyName": string, "mission": string, "ceoName": string, "ceoPersonality": string, "onboardingComplete": boolean} — set "onboardingComplete" to false until you have all five answers, then write it one final time with "onboardingComplete": true. After that final write, briefly introduce yourself in your new persona. Until "onboardingComplete" is true, don't perform any other coding tasks.
 
 ${getProcessSafetyInstructions(cwd)}`;
 }

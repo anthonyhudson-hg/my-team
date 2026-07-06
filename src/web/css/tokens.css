@@ -1,0 +1,100 @@
+/*
+ * Design tokens for the Northlight-derived UI. Every color, radius, spacing
+ * and font-size a component uses should come from a variable here rather
+ * than a literal — the one exception is one-off pixel values inherited
+ * directly from the source design (e.g. a 46px avatar) that don't recur
+ * often enough to justify their own token; those stay as literals in the
+ * component's own rule, not scattered as unexplained magic numbers.
+ */
+:root {
+  /* ---- layout ---- */
+  --rail-w: 64px;
+  --sidebar-w: 264px;
+  --header-h: 66px;
+  --content-max: 820px;
+  --home-max: 940px;
+  --settings-max: 720px;
+  --window-radius: 13px;
+
+  /* ---- spacing scale (px) ---- */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 14px;
+  --space-8: 16px;
+  --space-9: 20px;
+  --space-10: 24px;
+  --space-11: 28px;
+  --space-12: 32px;
+
+  /* ---- radius scale (px) ---- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 9px;
+  --radius-xl: 11px;
+  --radius-2xl: 12px;
+  --radius-3xl: 14px;
+  --radius-4xl: 16px;
+  --radius-5xl: 18px;
+  --radius-6xl: 19px;
+  --radius-full: 999px;
+
+  /* ---- type scale (px) ---- */
+  --fs-2xs: 9px;
+  --fs-2xs-alt: 9.5px;
+  --fs-xs: 10px;
+  --fs-xs-alt: 10.5px;
+  --fs-sm: 11px;
+  --fs-sm-alt: 11.5px;
+  --fs-base: 12px;
+  --fs-base-alt: 12.5px;
+  --fs-md: 13px;
+  --fs-md-alt: 13.5px;
+  --fs-lg: 14px;
+  --fs-lg-alt: 14.5px;
+  --fs-xl: 15px;
+  --fs-xl-alt: 15.5px;
+  --fs-2xl: 16px;
+  --fs-3xl: 17px;
+  --fs-4xl: 18px;
+  --fs-5xl: 20px;
+  --fs-6xl: 22px;
+  --fs-7xl: 23px;
+  --fs-8xl: 26px;
+  --fs-9xl: 29px;
+  --fs-10xl: 30px;
+
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ---- motion ---- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 160ms;
+  --duration-slow: 220ms;
+  --duration-splash: 550ms;
+
+  /* ---- fixed brand colors (independent of theme/accent) ---- */
+  --ada: #6b4ee6;
+  --ada-dot: #e7a33c;
+  --success: #3fbf5f;
+  --danger: #e5484d;
+  --danger-hover: #cf3f44;
+
+  /* ---- accent (user-selectable, see themes.css) ---- */
+  --accent: #5b5bd6;
+  --on-accent: #ffffff;
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--content-bg));
+  --accent-border: color-mix(in srgb, var(--accent) 32%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 6%, var(--card-bg));
+  --danger-border-soft: color-mix(in srgb, var(--danger) 32%, transparent);
+}

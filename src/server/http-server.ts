@@ -7,20 +7,48 @@ import { npmInstall } from '../npm-install.js';
 import { checkAuth } from './auth-check.js';
 import { readHistory } from './chat-history.js';
 import { ChatSession } from './chat-session.js';
+import { appendGeneralMessage, readGeneralHistory } from './general-history.js';
 import type { Logger } from './logger.js';
 import { readProfile, validateProfileInput, writeProfile } from './profile.js';
 import { resetInstance } from './reset.js';
 import { tokensMatch } from './token.js';
+import { readUiPrefs, validateUiPrefsPatch, writeUiPrefs } from './ui-prefs.js';
 import type { UpdateInfo } from './update-check.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIR = path.join(__dirname, '..', 'web');
 
-const STATIC_FILES: Record<string, { file: string; contentType: string }> = {
-  '/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
-  '/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
-  '/style.css': { file: 'style.css', contentType: 'text/css; charset=utf-8' },
+const CONTENT_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.svg': 'image/svg+xml',
 };
+
+/**
+ * Resolves a request path to a file under WEB_DIR and serves it, or returns
+ * false so the caller can fall through to a 404/API route. The extension
+ * whitelist doubles as the traversal guard's payoff check — even a resolved
+ * path that escaped WEB_DIR would still need a recognized extension, but the
+ * realpath-prefix check is what actually stops `..` segments.
+ */
+async function serveStatic(pathname: string, res: http.ServerResponse): Promise<boolean> {
+  const relPath = pathname === '/' ? 'index.html' : pathname.slice(1);
+  const resolved = path.join(WEB_DIR, relPath);
+  if (resolved !== WEB_DIR && !resolved.startsWith(WEB_DIR + path.sep)) return false;
+  const contentType = CONTENT_TYPES[path.extname(resolved)];
+  if (!contentType) return false;
+  try {
+    const body = await readFile(resolved);
+    res.writeHead(200, { 'Content-Type': contentType }).end(body);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export interface CreateServerOptions {
   cwd: string;
@@ -60,14 +88,9 @@ export function createServer(options: CreateServerOptions): http.Server {
 
     const url = new URL(req.url ?? '/', `http://127.0.0.1:${portRef.port}`);
 
-    const staticEntry = req.method === 'GET' ? STATIC_FILES[url.pathname] : undefined;
-    if (staticEntry) {
-      try {
-        const body = await readFile(path.join(WEB_DIR, staticEntry.file));
-        res.writeHead(200, { 'Content-Type': staticEntry.contentType }).end(body);
-      } catch {
-        res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found');
-      }
+    if (req.method === 'GET' && !url.pathname.startsWith('/api/')) {
+      if (await serveStatic(url.pathname, res)) return;
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found');
       return;
     }
 
@@ -109,6 +132,56 @@ export function createServer(options: CreateServerOptions): http.Server {
     if (req.method === 'GET' && url.pathname === '/api/chat/history') {
       const history = await readHistory(cwd);
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ history }));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/ui-prefs') {
+      const prefs = await readUiPrefs(cwd);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ prefs }));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/ui-prefs') {
+      let body: any;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'invalid body' }));
+        return;
+      }
+      const validated = validateUiPrefsPatch(body);
+      if ('error' in validated) {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify(validated));
+        return;
+      }
+      const prefs = await writeUiPrefs(cwd, validated);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ prefs }));
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/general/history') {
+      const history = await readGeneralHistory(cwd);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ history }));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/general') {
+      let body: any;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'invalid body' }));
+        return;
+      }
+      const text = typeof body.text === 'string' ? body.text.trim() : '';
+      const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : 'You';
+      if (!text) {
+        res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'empty message' }));
+        return;
+      }
+      const message = { name, text, ts: new Date().toISOString() };
+      await appendGeneralMessage(cwd, message);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true, message }));
       return;
     }
 
