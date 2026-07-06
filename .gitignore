@@ -1,7 +1,8 @@
 node_modules/
 dist/
 *.tgz
-.my-team/chat-history.jsonl
-.my-team/general-history.jsonl
-.my-team/ui-prefs.json
-.my-team/server.pid
+.claude/
+.cofound/chat-history.jsonl
+.cofound/general-history.jsonl
+.cofound/ui-prefs.json
+.cofound/server.pid

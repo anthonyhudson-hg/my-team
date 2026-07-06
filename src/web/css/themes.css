@@ -6,7 +6,6 @@
  */
 :root,
 [data-theme='Contrast'] {
-  --wall: linear-gradient(155deg, #eceef4, #e0e2ec);
   --win-bg: #ffffff;
   --rail-bg: #0e0e11;
   --rail-border: rgba(255, 255, 255, 0.08);
@@ -43,7 +42,6 @@
 }
 
 [data-theme='Light'] {
-  --wall: linear-gradient(155deg, #f1f2f6, #e6e7ee);
   --win-bg: #ffffff;
   --rail-bg: #e8e8ed;
   --rail-border: rgba(0, 0, 0, 0.06);
@@ -80,7 +78,6 @@
 }
 
 [data-theme='Dark'] {
-  --wall: linear-gradient(155deg, #101014, #08080a);
   --win-bg: #161619;
   --rail-bg: #0a0a0c;
   --rail-border: rgba(255, 255, 255, 0.06);
