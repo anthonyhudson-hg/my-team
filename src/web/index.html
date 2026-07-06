@@ -6,21 +6,28 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <p id="loading">Checking Claude Code status&hellip;</p>
+  <div id="loading" class="splash">
+    <div class="splash-logo"></div>
+    <div class="splash-spinner"></div>
+    <p class="splash-text">Checking Claude Code status&hellip;</p>
+  </div>
 
-  <section id="onboarding" hidden>
-    <h1>Set up Claude Code</h1>
-    <div id="onboarding-cli-missing" hidden>
-      <p>The Claude Code CLI binary couldn't be found or run.</p>
-      <p>Try installing it globally, then reload this page:</p>
-      <pre>npm install -g @anthropic-ai/claude-code</pre>
+  <section id="onboarding" class="splash" hidden>
+    <div class="splash-logo"></div>
+    <div class="splash-card">
+      <h1>Set up Claude Code</h1>
+      <div id="onboarding-cli-missing" hidden>
+        <p>The Claude Code CLI binary couldn't be found or run.</p>
+        <p>Try installing it globally, then reload this page:</p>
+        <pre>npm install -g @anthropic-ai/claude-code</pre>
+      </div>
+      <div id="onboarding-not-authenticated" hidden>
+        <p>Claude Code isn't logged in yet. In a terminal, run:</p>
+        <pre>claude login</pre>
+        <p>Then come back here.</p>
+      </div>
+      <button id="check-again">Check again</button>
     </div>
-    <div id="onboarding-not-authenticated" hidden>
-      <p>Claude Code isn't logged in yet. In a terminal, run:</p>
-      <pre>claude login</pre>
-      <p>Then come back here.</p>
-    </div>
-    <button id="check-again">Check again</button>
   </section>
 
   <div id="app-shell" hidden>
