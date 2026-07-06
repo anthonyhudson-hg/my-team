@@ -6,6 +6,8 @@ export interface ProfileData {
   mission: string;
   ceoName: string;
   ceoPersonality: string;
+  /** False while the conversational onboarding interview is still in progress. */
+  onboardingComplete: boolean;
 }
 
 const MAX_FIELD_LENGTH = 2000;
@@ -24,7 +26,14 @@ function stringOrDefault(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-/** Never throws. Missing file is the normal "not onboarded yet" case. */
+/**
+ * Never throws. Returns null only when the file doesn't exist or isn't
+ * parseable JSON at all — the "nothing written yet" case. Once the file
+ * exists, every field degrades gracefully to a default rather than
+ * invalidating the whole profile, because Claude writes this file itself
+ * incrementally during the onboarding conversation (e.g. companyName known,
+ * mission not yet) so the UI can reflect progress as it happens.
+ */
 export async function readProfile(cwd: string): Promise<ProfileData | null> {
   const filePath = getProfilePath(cwd);
   let raw: string;
@@ -33,24 +42,24 @@ export async function readProfile(cwd: string): Promise<ProfileData | null> {
   } catch {
     return null;
   }
+  let parsed: any;
   try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.companyName !== 'string' || typeof parsed?.mission !== 'string') {
-      console.warn(`my-team: ${filePath} exists but has an unexpected shape — treating as unconfigured.`);
-      return null;
-    }
-    return {
-      companyName: parsed.companyName,
-      mission: parsed.mission,
-      // Claude self-writes this file during the onboarding conversation — tolerate it
-      // omitting the newer fields rather than bouncing the whole profile as invalid.
-      ceoName: stringOrDefault(parsed.ceoName, DEFAULT_CEO_NAME),
-      ceoPersonality: stringOrDefault(parsed.ceoPersonality, DEFAULT_CEO_PERSONALITY),
-    };
+    parsed = JSON.parse(raw);
   } catch {
     console.warn(`my-team: ${filePath} exists but isn't valid JSON — treating as unconfigured.`);
     return null;
   }
+  if (typeof parsed !== 'object' || parsed === null) {
+    console.warn(`my-team: ${filePath} exists but has an unexpected shape — treating as unconfigured.`);
+    return null;
+  }
+  return {
+    companyName: stringOrDefault(parsed.companyName, ''),
+    mission: stringOrDefault(parsed.mission, ''),
+    ceoName: stringOrDefault(parsed.ceoName, DEFAULT_CEO_NAME),
+    ceoPersonality: stringOrDefault(parsed.ceoPersonality, DEFAULT_CEO_PERSONALITY),
+    onboardingComplete: parsed.onboardingComplete === true,
+  };
 }
 
 export type ProfileValidationResult = ProfileData | { error: string };
@@ -76,7 +85,8 @@ export function validateProfileInput(body: any): ProfileValidationResult {
   if (typeof ceoName === 'object') return ceoName;
   const ceoPersonality = clampField(body?.ceoPersonality, DEFAULT_CEO_PERSONALITY);
   if (typeof ceoPersonality === 'object') return ceoPersonality;
-  return { companyName, mission, ceoName, ceoPersonality };
+  // A manual submission is a deliberate, complete configuration — never partial.
+  return { companyName, mission, ceoName, ceoPersonality, onboardingComplete: true };
 }
 
 export async function writeProfile(cwd: string, data: ProfileData): Promise<void> {
@@ -106,12 +116,14 @@ export function formatProfileForSystemPrompt(profile: ProfileData): string {
 }
 
 /**
- * Used instead of formatProfileForSystemPrompt when no profile exists yet.
- * Turns the very first conversation into the onboarding step itself, rather
- * than gating the dashboard behind a form — Claude asks the questions and
- * persists the answers itself via its own file-write access.
+ * Used instead of formatProfileForSystemPrompt while onboardingComplete is
+ * false. Turns the conversation itself into the onboarding step, rather than
+ * gating the dashboard behind a form — Claude asks the questions and
+ * persists the answers itself via its own file-write access, updating the
+ * file after each answer (not just once at the end) so the UI can reflect
+ * progress live as the conversation happens.
  */
 export function getOnboardingSystemPrompt(cwd: string): string {
   const filePath = getProfilePath(cwd);
-  return `There is no company profile configured yet in this repository. Before doing anything else, have a brief, friendly conversation with the founder (you're talking to them right now) to learn: (1) their company's name, (2) its mission or what it does, (3) what they'd like to name you as their AI CEO, and (4) what personality or communication style you should have. Ask naturally, a question or two at a time — don't interrogate, and don't ask about anything else in the repo yet. Once you have all four answers, write them to ${filePath} as JSON with exactly this shape: {"companyName": string, "mission": string, "ceoName": string, "ceoPersonality": string}. After writing the file, briefly introduce yourself in your new persona. Until the file is written, don't perform any other coding tasks.`;
+  return `There is no company profile configured yet in this repository. Before doing anything else, have a brief, friendly conversation with the founder (you're talking to them right now) to learn: (1) their company's name, (2) its mission or what it does, (3) what they'd like to name you as their AI CEO, and (4) what personality or communication style you should have. Ask naturally, a question or two at a time — don't interrogate, and don't ask about anything else in the repo yet. After each answer, immediately write or update ${filePath} with whatever you know so far as JSON: {"companyName": string, "mission": string, "ceoName": string, "ceoPersonality": string, "onboardingComplete": boolean} — set "onboardingComplete" to false until you have all four answers, then write it one final time with "onboardingComplete": true. After that final write, briefly introduce yourself in your new persona. Until "onboardingComplete" is true, don't perform any other coding tasks.`;
 }

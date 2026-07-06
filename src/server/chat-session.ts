@@ -4,7 +4,7 @@ import { formatProfileForSystemPrompt, getOnboardingSystemPrompt, readProfile } 
 
 export type ChatEvent =
   | { type: 'meta'; sessionId: string }
-  | { type: 'text'; text: string }
+  | { type: 'text-delta'; text: string }
   | { type: 'tool-use'; name: string }
   | { type: 'done' }
   | { type: 'error'; message: string };
@@ -30,13 +30,17 @@ export class ChatSession {
     this.turnInFlight = true;
     try {
       const profile = await readProfile(cwd);
-      const systemPromptAppend = profile ? formatProfileForSystemPrompt(profile) : getOnboardingSystemPrompt(cwd);
+      const onboarded = profile?.onboardingComplete === true;
+      const systemPromptAppend = onboarded
+        ? formatProfileForSystemPrompt(profile)
+        : getOnboardingSystemPrompt(cwd);
       const q = query({
         prompt: message,
         options: {
           cwd,
           env: sanitizeEnv(process.env),
           permissionMode: 'auto',
+          includePartialMessages: true,
           ...(this.sessionId ? { resume: this.sessionId } : {}),
           systemPrompt: { type: 'preset', preset: 'claude_code', append: systemPromptAppend },
         },
@@ -46,11 +50,16 @@ export class ChatSession {
         if (msg.type === 'system' && msg.subtype === 'init') {
           this.sessionId = msg.session_id;
           yield { type: 'meta', sessionId: msg.session_id };
+        } else if (msg.type === 'stream_event') {
+          const event = msg.event;
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            yield { type: 'text-delta', text: event.delta.text };
+          }
         } else if (msg.type === 'assistant') {
+          // Text was already streamed via stream_event deltas above — only tool
+          // calls are new information here (tool inputs don't render usefully).
           for (const block of msg.message.content) {
-            if (block.type === 'text') {
-              yield { type: 'text', text: block.text };
-            } else if (block.type === 'tool_use') {
+            if (block.type === 'tool_use') {
               yield { type: 'tool-use', name: block.name };
             }
           }

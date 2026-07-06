@@ -30,6 +30,10 @@ The first time you run `npm run team` in a repo, Claude opens the conversation i
 
 **Commit `.my-team/profile.json`** — don't gitignore it. It's shared, non-sensitive team config, the same category as a checked-in `CLAUDE.md`: the whole point of it living per-repo is that teammates cloning the repo share the same CEO persona without re-onboarding. Use the "Edit profile" button on the dashboard to adjust the company name, mission, CEO name, or personality later; changes take effect on the next chat turn without restarting the server.
 
+## Interface
+
+A Slack-style shell: a `#general` channel (placeholder for now) and a DM with your CEO in the sidebar, real token-by-token streaming (via the SDK's `includePartialMessages`), a typing indicator, and a status dot on the CEO's avatar reflecting connection state. It's plain static HTML/CSS/JS talking to the backend over local HTTP + SSE — no browser-only assumptions — so a future native (Tauri) shell can point at the same server without a rewrite; there's no Tauri wrapper yet.
+
 ## Status
 
-v1.2: CLI-auth onboarding + conversational company/CEO-persona onboarding + a single chat session per launch. No persisted chat history, no multi-user support.
+v1.3: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming. No persisted chat history across restarts, no multi-user support, no `#general` backend (sidebar placeholder only).

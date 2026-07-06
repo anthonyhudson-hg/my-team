@@ -6,24 +6,36 @@ const el = {
   cliMissing: document.getElementById('onboarding-cli-missing'),
   notAuthenticated: document.getElementById('onboarding-not-authenticated'),
   checkAgain: document.getElementById('check-again'),
-  profileSetup: document.getElementById('profile-setup'),
+  appShell: document.getElementById('app-shell'),
+  workspaceName: document.getElementById('workspace-name'),
+  navGeneral: document.getElementById('nav-general'),
+  navCeo: document.getElementById('nav-ceo'),
+  ceoAvatar: document.getElementById('ceo-avatar'),
+  ceoNavName: document.getElementById('ceo-nav-name'),
+  ceoStatusDot: document.getElementById('ceo-status-dot'),
+  channelTitle: document.getElementById('channel-title'),
+  channelSubtitle: document.getElementById('channel-subtitle'),
+  editProfile: document.getElementById('edit-profile'),
+  channelGeneral: document.getElementById('channel-general'),
+  channelCeo: document.getElementById('channel-ceo'),
+  messages: document.getElementById('messages'),
+  typingIndicator: document.getElementById('typing-indicator'),
+  typingAvatar: document.getElementById('typing-avatar'),
+  form: document.getElementById('chat-form'),
+  input: document.getElementById('chat-input'),
+  profileModalBackdrop: document.getElementById('profile-modal-backdrop'),
   profileForm: document.getElementById('profile-form'),
   profileCompany: document.getElementById('profile-company'),
   profileMission: document.getElementById('profile-mission'),
   profileCeoName: document.getElementById('profile-ceo-name'),
   profileCeoPersonality: document.getElementById('profile-ceo-personality'),
   profileCancel: document.getElementById('profile-cancel'),
-  dashboard: document.getElementById('dashboard'),
-  accountLine: document.getElementById('account-line'),
-  companyLine: document.getElementById('company-line'),
-  editProfile: document.getElementById('edit-profile'),
-  messages: document.getElementById('messages'),
-  form: document.getElementById('chat-form'),
-  input: document.getElementById('chat-input'),
 };
 
 let lastProfile = null;
 let onboardingKickedOff = false;
+let currentChannel = 'ceo';
+let statusState = 'offline';
 
 function api(path, options = {}) {
   return fetch(path, {
@@ -32,15 +44,86 @@ function api(path, options = {}) {
   });
 }
 
-function show(section) {
-  el.loading.hidden = true;
-  el.onboarding.hidden = section !== 'onboarding';
-  el.profileSetup.hidden = section !== 'profile-setup';
-  el.dashboard.hidden = section !== 'dashboard';
+function getCeoInitial() {
+  const name = lastProfile?.ceoName;
+  return name && name !== 'your AI CEO' ? name.trim()[0].toUpperCase() : '?';
 }
 
-function renderCompanyLine(profile) {
-  el.companyLine.textContent = profile ? `\u{00B7} ${profile.ceoName} @ ${profile.companyName}` : '';
+function renderProfileUI(profile) {
+  el.workspaceName.textContent = profile?.companyName || 'my-team';
+  const ceoName = profile?.ceoName || 'your AI CEO';
+  el.ceoNavName.textContent = ceoName;
+  el.ceoAvatar.textContent = getCeoInitial();
+  if (currentChannel === 'ceo') el.channelTitle.textContent = ceoName;
+}
+
+function setStatus(state) {
+  statusState = state;
+  el.ceoStatusDot.classList.remove('online', 'typing');
+  if (state === 'online') el.ceoStatusDot.classList.add('online');
+  else if (state === 'typing') el.ceoStatusDot.classList.add('typing');
+  if (currentChannel === 'ceo') {
+    el.channelSubtitle.textContent = state === 'typing' ? 'Typing…' : state === 'online' ? 'Active' : 'Offline';
+  }
+}
+
+function selectChannel(channel) {
+  currentChannel = channel;
+  el.navGeneral.classList.toggle('active', channel === 'general');
+  el.navCeo.classList.toggle('active', channel === 'ceo');
+  el.channelGeneral.hidden = channel !== 'general';
+  el.channelCeo.hidden = channel !== 'ceo';
+  el.editProfile.hidden = channel !== 'ceo';
+  if (channel === 'general') {
+    el.channelTitle.textContent = '# general';
+    el.channelSubtitle.textContent = '';
+  } else {
+    el.channelTitle.textContent = lastProfile?.ceoName || 'your AI CEO';
+    setStatus(statusState);
+  }
+}
+
+el.navGeneral.addEventListener('click', () => selectChannel('general'));
+el.navCeo.addEventListener('click', () => selectChannel('ceo'));
+
+async function checkStatus() {
+  el.loading.hidden = false;
+  el.onboarding.hidden = true;
+  el.appShell.hidden = true;
+
+  const res = await api('/api/status');
+  const result = await res.json();
+  el.loading.hidden = true;
+
+  if (result.ok) {
+    lastProfile = result.profile;
+    renderProfileUI(lastProfile);
+    selectChannel('ceo');
+    el.appShell.hidden = false;
+    setStatus('online');
+
+    if (!lastProfile?.onboardingComplete && !onboardingKickedOff) {
+      onboardingKickedOff = true;
+      kickoffOnboarding();
+    }
+    return;
+  }
+
+  el.cliMissing.hidden = result.reason !== 'cli-missing';
+  el.notAuthenticated.hidden = result.reason !== 'not-authenticated';
+  el.onboarding.hidden = false;
+}
+
+el.checkAgain.addEventListener('click', checkStatus);
+
+async function refreshProfileIfNeeded() {
+  if (lastProfile?.onboardingComplete) return;
+  const res = await api('/api/profile');
+  const { profile } = await res.json();
+  if (profile) {
+    lastProfile = profile;
+    renderProfileUI(profile);
+  }
 }
 
 function populateProfileForm(profile) {
@@ -50,44 +133,18 @@ function populateProfileForm(profile) {
   el.profileCeoPersonality.value = profile?.ceoPersonality ?? '';
 }
 
-async function checkStatus() {
-  el.loading.hidden = false;
-  el.onboarding.hidden = true;
-  el.profileSetup.hidden = true;
-  el.dashboard.hidden = true;
-  const res = await api('/api/status');
-  const result = await res.json();
+el.editProfile.addEventListener('click', () => {
+  populateProfileForm(lastProfile);
+  el.profileModalBackdrop.hidden = false;
+});
 
-  if (result.ok) {
-    const info = result.accountInfo;
-    el.accountLine.textContent = `Logged in as ${info.email ?? 'unknown'}${info.subscriptionType ? ` (${info.subscriptionType})` : ''}`;
-    lastProfile = result.profile;
-    renderCompanyLine(lastProfile);
-    show('dashboard');
+el.profileCancel.addEventListener('click', () => {
+  el.profileModalBackdrop.hidden = true;
+});
 
-    if (!lastProfile && !onboardingKickedOff) {
-      onboardingKickedOff = true;
-      kickoffOnboarding();
-    }
-    return;
-  }
-
-  el.cliMissing.hidden = result.reason !== 'cli-missing';
-  el.notAuthenticated.hidden = result.reason !== 'not-authenticated';
-  show('onboarding');
-}
-
-el.checkAgain.addEventListener('click', checkStatus);
-
-async function refreshProfileIfNeeded() {
-  if (lastProfile) return;
-  const res = await api('/api/profile');
-  const { profile } = await res.json();
-  if (profile) {
-    lastProfile = profile;
-    renderCompanyLine(profile);
-  }
-}
+el.profileModalBackdrop.addEventListener('click', (e) => {
+  if (e.target === el.profileModalBackdrop) el.profileModalBackdrop.hidden = true;
+});
 
 el.profileForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -110,32 +167,93 @@ el.profileForm.addEventListener('submit', async (e) => {
   const profileRes = await api('/api/profile');
   const { profile } = await profileRes.json();
   lastProfile = profile;
-  renderCompanyLine(lastProfile);
-  show('dashboard');
+  renderProfileUI(lastProfile);
+  el.profileModalBackdrop.hidden = true;
 });
 
-el.editProfile.addEventListener('click', () => {
-  populateProfileForm(lastProfile);
-  show('profile-setup');
-});
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
 
-el.profileCancel.addEventListener('click', () => {
-  show('dashboard');
-});
+// Minimal, safe markdown rendering: escape first, then convert a handful of
+// common patterns. Applied to the full accumulated text on every streamed
+// delta, so an unclosed marker mid-stream self-corrects once the closing
+// marker arrives a moment later.
+function renderMarkdown(text) {
+  let html = escapeHtml(text);
+  html = html.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code}</code></pre>`);
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+  return html;
+}
 
-function appendMessage(className, text) {
-  const div = document.createElement('div');
-  div.className = `msg ${className}`;
-  div.textContent = text;
-  el.messages.appendChild(div);
+function appendMessageRow(kind, name, avatarText, text) {
+  const row = document.createElement('div');
+  row.className = `msg-row ${kind}`;
+
+  const avatar = document.createElement('span');
+  avatar.className = 'avatar';
+  avatar.textContent = avatarText;
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.textContent = name;
+  const time = document.createElement('span');
+  time.className = 'msg-time';
+  time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  meta.appendChild(time);
+
+  const textEl = document.createElement('div');
+  textEl.className = 'msg-text';
+  textEl.innerHTML = renderMarkdown(text);
+
+  content.appendChild(meta);
+  content.appendChild(textEl);
+  row.appendChild(avatar);
+  row.appendChild(content);
+  el.messages.appendChild(row);
   el.messages.scrollTop = el.messages.scrollHeight;
-  return div;
+  return { row, textEl };
+}
+
+function appendUserMessage(text) {
+  appendMessageRow('user', 'You', 'Y', text);
+}
+
+function appendAssistantRow() {
+  return appendMessageRow('assistant', lastProfile?.ceoName || 'your AI CEO', getCeoInitial(), '');
+}
+
+function appendToolMessage(name) {
+  appendMessageRow('tool', 'System', '⚙', `Using tool: ${name}`);
+}
+
+function appendErrorMessage(message) {
+  appendMessageRow('error', 'Error', '!', message);
+}
+
+function showTypingIndicator() {
+  el.typingAvatar.textContent = getCeoInitial();
+  el.typingIndicator.hidden = false;
+  el.messages.scrollTop = el.messages.scrollHeight;
+}
+
+function hideTypingIndicator() {
+  el.typingIndicator.hidden = true;
 }
 
 async function streamChat(message, { showUserBubble }) {
-  if (showUserBubble) appendMessage('user', message);
-  const assistantEl = appendMessage('assistant', '');
+  if (showUserBubble) appendUserMessage(message);
+  showTypingIndicator();
+  setStatus('typing');
+
+  let assistantTextEl = null;
   let assistantText = '';
+  let sawContent = false;
 
   const res = await api('/api/chat', {
     method: 'POST',
@@ -144,7 +262,9 @@ async function streamChat(message, { showUserBubble }) {
   });
 
   if (!res.ok || !res.body) {
-    appendMessage('error', `Request failed (${res.status})`);
+    hideTypingIndicator();
+    appendErrorMessage(`Request failed (${res.status})`);
+    setStatus('offline');
     return;
   }
 
@@ -165,17 +285,36 @@ async function streamChat(message, { showUserBubble }) {
       if (!line) continue;
       const event = JSON.parse(line.slice('data: '.length));
 
-      if (event.type === 'text') {
+      if (event.type === 'text-delta') {
+        if (!sawContent) {
+          hideTypingIndicator();
+          sawContent = true;
+        }
+        if (!assistantTextEl) {
+          assistantTextEl = appendAssistantRow().textEl;
+        }
         assistantText += event.text;
-        assistantEl.textContent = assistantText;
+        assistantTextEl.innerHTML = renderMarkdown(assistantText);
+        el.messages.scrollTop = el.messages.scrollHeight;
       } else if (event.type === 'tool-use') {
-        appendMessage('tool', `\u{1F527} using tool: ${event.name}`);
+        if (!sawContent) {
+          hideTypingIndicator();
+          sawContent = true;
+        }
+        appendToolMessage(event.name);
       } else if (event.type === 'error') {
-        appendMessage('error', event.message);
+        if (!sawContent) {
+          hideTypingIndicator();
+          sawContent = true;
+        }
+        appendErrorMessage(event.message);
+        setStatus('offline');
       }
     }
   }
 
+  hideTypingIndicator();
+  if (statusState !== 'offline') setStatus('online');
   await refreshProfileIfNeeded();
 }
 

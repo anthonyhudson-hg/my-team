@@ -6,25 +6,79 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <main id="app">
-    <p id="loading">Checking Claude Code status&hellip;</p>
+  <p id="loading">Checking Claude Code status&hellip;</p>
 
-    <section id="onboarding" hidden>
-      <h1>Set up Claude Code</h1>
-      <div id="onboarding-cli-missing" hidden>
-        <p>The Claude Code CLI binary couldn't be found or run.</p>
-        <p>Try installing it globally, then reload this page:</p>
-        <pre>npm install -g @anthropic-ai/claude-code</pre>
-      </div>
-      <div id="onboarding-not-authenticated" hidden>
-        <p>Claude Code isn't logged in yet. In a terminal, run:</p>
-        <pre>claude login</pre>
-        <p>Then come back here.</p>
-      </div>
-      <button id="check-again">Check again</button>
-    </section>
+  <section id="onboarding" hidden>
+    <h1>Set up Claude Code</h1>
+    <div id="onboarding-cli-missing" hidden>
+      <p>The Claude Code CLI binary couldn't be found or run.</p>
+      <p>Try installing it globally, then reload this page:</p>
+      <pre>npm install -g @anthropic-ai/claude-code</pre>
+    </div>
+    <div id="onboarding-not-authenticated" hidden>
+      <p>Claude Code isn't logged in yet. In a terminal, run:</p>
+      <pre>claude login</pre>
+      <p>Then come back here.</p>
+    </div>
+    <button id="check-again">Check again</button>
+  </section>
 
-    <section id="profile-setup" hidden>
+  <div id="app-shell" hidden>
+    <aside id="sidebar">
+      <div id="workspace-header">
+        <span id="workspace-name">my-team</span>
+      </div>
+      <nav id="nav">
+        <div class="nav-section-label">Channels</div>
+        <button class="nav-item" id="nav-general" type="button">
+          <span class="nav-hash">#</span><span>general</span>
+        </button>
+        <div class="nav-section-label">Direct Messages</div>
+        <button class="nav-item nav-item-dm" id="nav-ceo" type="button">
+          <span class="avatar-wrap">
+            <span class="avatar" id="ceo-avatar">?</span>
+            <span class="status-dot" id="ceo-status-dot"></span>
+          </span>
+          <span class="nav-item-label" id="ceo-nav-name">your AI CEO</span>
+        </button>
+      </nav>
+    </aside>
+
+    <main id="main-pane">
+      <header id="main-header">
+        <div id="header-title-group">
+          <span id="channel-title"></span>
+          <span id="channel-subtitle"></span>
+        </div>
+        <button id="edit-profile" type="button" hidden>Edit profile</button>
+      </header>
+
+      <section id="channel-general" hidden>
+        <div class="empty-state">
+          <p>This is the very beginning of <strong>#general</strong>.</p>
+        </div>
+      </section>
+
+      <section id="channel-ceo" hidden>
+        <div class="banner">
+          Tool actions (file edits, shell commands) are auto-approved by Claude's own safety classifier &mdash;
+          not reviewed by you turn-by-turn.
+        </div>
+        <div id="messages"></div>
+        <div id="typing-indicator" hidden>
+          <span class="avatar" id="typing-avatar">?</span>
+          <span class="typing-dots"><i></i><i></i><i></i></span>
+        </div>
+        <form id="chat-form">
+          <input id="chat-input" type="text" placeholder="Message your CEO&hellip;" autocomplete="off" />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="profile-modal-backdrop" hidden>
+    <section id="profile-setup">
       <h1>Edit company profile</h1>
       <form id="profile-form">
         <label for="profile-company">Company name</label>
@@ -41,24 +95,8 @@
         </div>
       </form>
     </section>
+  </div>
 
-    <section id="dashboard" hidden>
-      <header>
-        <span id="account-line"></span>
-        <span id="company-line"></span>
-        <button id="edit-profile" type="button">Edit profile</button>
-      </header>
-      <div class="banner">
-        Tool actions (file edits, shell commands) are auto-approved by Claude's own safety classifier &mdash;
-        not reviewed by you turn-by-turn.
-      </div>
-      <div id="messages"></div>
-      <form id="chat-form">
-        <input id="chat-input" type="text" placeholder="Ask Claude about this repo&hellip;" autocomplete="off" />
-        <button type="submit">Send</button>
-      </form>
-    </section>
-  </main>
   <script src="/app.js"></script>
 </body>
 </html>
