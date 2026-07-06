@@ -9,10 +9,10 @@ It drives the official [`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/
 In any repo:
 
 ```sh
-npx my-team init
+npx @harborgroup/my-team init
 ```
 
-This adds `my-team` as a devDependency and an `npm run team` script.
+This adds `@harborgroup/my-team` as a devDependency and an `npm run team` script.
 
 ## Usage
 

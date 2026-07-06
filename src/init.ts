@@ -39,14 +39,15 @@ function addTeamScript(repoPackageJsonPath: string): void {
 
 export async function runInit(cwd: string): Promise<void> {
   const repoPackageJsonPath = path.join(cwd, 'package.json');
+  const name = OWN_PACKAGE_JSON.name;
   if (!existsSync(repoPackageJsonPath)) {
-    console.error(`No package.json found at ${cwd}. Run "npm init" first, then re-run "npx my-team init".`);
+    console.error(`No package.json found at ${cwd}. Run "npm init" first, then re-run "npx ${name} init".`);
     process.exitCode = 1;
     return;
   }
 
   const version = OWN_PACKAGE_JSON.version;
-  const installed = npmInstall(cwd, `my-team@${version}`) || npmInstall(cwd, OWN_PACKAGE_ROOT);
+  const installed = npmInstall(cwd, `${name}@${version}`) || npmInstall(cwd, OWN_PACKAGE_ROOT);
   if (!installed) {
     console.error('Failed to install my-team as a devDependency.');
     process.exitCode = 1;

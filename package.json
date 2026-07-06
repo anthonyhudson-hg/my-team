@@ -1,5 +1,5 @@
 {
-  "name": "my-team",
+  "name": "@harborgroup/my-team",
   "version": "0.1.0",
   "description": "Chat with your local Claude Code subscription from a web dashboard, scoped to the current repo. Dev-only.",
   "type": "module",
@@ -11,6 +11,9 @@
   ],
   "engines": {
     "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-web-assets.mjs",
