@@ -46,6 +46,10 @@ On startup, `my-team` checks the npm registry in the background for a newer publ
 
 Every raw request sent to the Claude Agent SDK (including the exact system prompt) and every raw message it streams back is logged verbatim to a JSON-lines file, one per `npm run team` run, under `~/.my-team/logs/` (outside the repo — old runs beyond a retention count are pruned automatically). The current run's log path is printed on startup and shown on the Settings page.
 
+## Clarifying questions
+
+When Iris (or your CEO) wants a structured answer rather than free text, it asks via a real inline widget — text input, single-select, or multi-select (with an automatic "Other" option) — instead of plain prose. This is a text convention the model follows (a fenced `question-widget` block the frontend parses out of the stream and replaces with an interactive card), not an MCP tool call: a real custom-tool + elicitation round trip was tested directly against the installed SDK and confirmed not to work yet (Claude Code's MCP-client role doesn't currently declare elicitation capability), so this achieves the same UX without that dependency. The main composer is disabled while a widget is awaiting an answer.
+
 ## Status
 
-v1.4: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging. No persisted chat history across restarts, no multi-user support, no `#general` backend (sidebar placeholder only).
+v1.5: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets. No persisted chat history across restarts, no multi-user support, no `#general` backend (sidebar placeholder only).

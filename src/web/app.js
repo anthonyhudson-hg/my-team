@@ -43,6 +43,7 @@ const el = {
   typingAvatar: document.getElementById('typing-avatar'),
   form: document.getElementById('chat-form'),
   input: document.getElementById('chat-input'),
+  sendButton: document.getElementById('chat-send'),
 
   profileForm: document.getElementById('profile-form'),
   profileCompany: document.getElementById('profile-company'),
@@ -402,6 +403,240 @@ function appendUserMessage(text) {
   appendMessageRow('user', 'You', 'Y', text);
 }
 
+let pendingWidgetCount = 0;
+
+function setPendingWidget(delta) {
+  pendingWidgetCount = Math.max(0, pendingWidgetCount + delta);
+  el.input.disabled = pendingWidgetCount > 0;
+  el.sendButton.disabled = pendingWidgetCount > 0;
+  if (pendingWidgetCount === 0) el.input.focus();
+}
+
+const WIDGET_OPEN_FENCE = '```question-widget';
+
+// Incremental parser: processes streamed text chunks as they arrive rather
+// than re-parsing the full accumulated text on every delta. This matters for
+// two reasons — (1) a widget block mid-stream would otherwise flash raw JSON
+// before its closing fence arrives, and (2) naively re-rendering the whole
+// message on every delta would wipe out a widget the user already answered
+// if more text streams in afterward.
+class AssistantContentRenderer {
+  constructor(containerEl) {
+    this.container = containerEl;
+    this.state = 'text';
+    this.buffer = '';
+    this.textSegmentEl = null;
+    this.textRaw = '';
+    this.widgetPlaceholderEl = null;
+    this.widgetRaw = '';
+  }
+
+  push(deltaText) {
+    this.buffer += deltaText;
+    for (;;) {
+      if (this.state === 'text') {
+        const fenceIdx = this.buffer.indexOf(WIDGET_OPEN_FENCE);
+        if (fenceIdx === -1) {
+          // Hold back a tail as long as the marker minus one character —
+          // deltas arrive token-by-token, so the marker itself can easily
+          // be split across chunks (e.g. one delta ending "``" and the next
+          // starting "`question-widget"). Flushing eagerly would render the
+          // first half as plain text before the second half ever confirms
+          // it was a fence, and the marker would never be recognized.
+          const safeLen = Math.max(0, this.buffer.length - (WIDGET_OPEN_FENCE.length - 1));
+          const toFlush = this.buffer.slice(0, safeLen);
+          this.buffer = this.buffer.slice(safeLen);
+          if (toFlush) {
+            if (!this.textSegmentEl) {
+              this.textSegmentEl = document.createElement('div');
+              this.textSegmentEl.className = 'msg-text-segment';
+              this.container.appendChild(this.textSegmentEl);
+            }
+            this.textRaw += toFlush;
+            this.textSegmentEl.innerHTML = renderMarkdown(this.textRaw);
+          }
+          return;
+        }
+        if (fenceIdx > 0 || this.textRaw) {
+          if (!this.textSegmentEl) {
+            this.textSegmentEl = document.createElement('div');
+            this.textSegmentEl.className = 'msg-text-segment';
+            this.container.appendChild(this.textSegmentEl);
+          }
+          this.textRaw += this.buffer.slice(0, fenceIdx);
+          this.textSegmentEl.innerHTML = renderMarkdown(this.textRaw);
+        }
+        this.textSegmentEl = null;
+        this.textRaw = '';
+        this.buffer = this.buffer.slice(fenceIdx + WIDGET_OPEN_FENCE.length);
+        this.state = 'in-widget';
+        this.widgetRaw = '';
+        this.widgetPlaceholderEl = document.createElement('div');
+        this.widgetPlaceholderEl.className = 'question-widget-placeholder';
+        this.widgetPlaceholderEl.textContent = 'Preparing a question…';
+        this.container.appendChild(this.widgetPlaceholderEl);
+      } else {
+        const closeIdx = this.buffer.indexOf('```');
+        if (closeIdx === -1) {
+          // Same tail-holding logic for the closing fence (3 chars).
+          const safeLen = Math.max(0, this.buffer.length - 2);
+          this.widgetRaw += this.buffer.slice(0, safeLen);
+          this.buffer = this.buffer.slice(safeLen);
+          return;
+        }
+        this.widgetRaw += this.buffer.slice(0, closeIdx);
+        this.buffer = this.buffer.slice(closeIdx + 3);
+        this.state = 'text';
+        this.renderWidget(this.widgetRaw);
+      }
+    }
+  }
+
+  renderWidget(rawJson) {
+    let data;
+    try {
+      data = JSON.parse(rawJson);
+    } catch {
+      // Malformed JSON from the model — show the raw text rather than
+      // silently dropping it, so a parsing failure is at least visible.
+      this.widgetPlaceholderEl.textContent = rawJson.trim();
+      this.widgetPlaceholderEl.className = 'msg-text-segment';
+      this.widgetPlaceholderEl = null;
+      return;
+    }
+    setPendingWidget(1);
+    let answered = false;
+    const widgetEl = createQuestionWidget(data, (messageText) => {
+      if (answered) return;
+      answered = true;
+      setPendingWidget(-1);
+      streamChat(messageText, { showUserBubble: false });
+    });
+    this.widgetPlaceholderEl.replaceWith(widgetEl);
+    this.widgetPlaceholderEl = null;
+  }
+
+  finish() {
+    // No more text is coming, so anything still held back as a possible
+    // partial fence match is definitely not one — flush it as plain text.
+    if (this.state === 'text' && this.buffer) {
+      if (!this.textSegmentEl) {
+        this.textSegmentEl = document.createElement('div');
+        this.textSegmentEl.className = 'msg-text-segment';
+        this.container.appendChild(this.textSegmentEl);
+      }
+      this.textRaw += this.buffer;
+      this.textSegmentEl.innerHTML = renderMarkdown(this.textRaw);
+      this.buffer = '';
+    }
+    // A block left unterminated when the turn ends (shouldn't normally
+    // happen) — show what was received rather than leaving a permanent
+    // "Preparing a question…" placeholder with no way to proceed.
+    if (this.state === 'in-widget' && this.widgetPlaceholderEl) {
+      this.widgetPlaceholderEl.textContent = `${WIDGET_OPEN_FENCE}\n${this.widgetRaw}${this.buffer}`;
+      this.widgetPlaceholderEl.className = 'msg-text-segment';
+    }
+  }
+}
+
+function createQuestionWidget(data, onAnswer) {
+  const card = document.createElement('div');
+  card.className = 'question-widget';
+
+  const questionEl = document.createElement('div');
+  questionEl.className = 'question-widget-question';
+  questionEl.textContent = data.question ?? 'Question';
+  card.appendChild(questionEl);
+
+  const body = document.createElement('div');
+  body.className = 'question-widget-body';
+  card.appendChild(body);
+
+  function submit(displayText, messageText) {
+    card.classList.add('answered');
+    body.innerHTML = '';
+    const answerEl = document.createElement('div');
+    answerEl.className = 'question-widget-answer';
+    answerEl.textContent = displayText;
+    body.appendChild(answerEl);
+    onAnswer(messageText ?? displayText);
+  }
+
+  function buildOtherRow(placeholder) {
+    const row = document.createElement('div');
+    row.className = 'question-widget-row question-widget-other';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = placeholder;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Send';
+    row.appendChild(input);
+    row.appendChild(btn);
+    const trigger = () => {
+      const val = input.value.trim();
+      if (val) submit(val, val);
+    };
+    btn.addEventListener('click', trigger);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') trigger();
+    });
+    return row;
+  }
+
+  const type = data.type;
+  const options = Array.isArray(data.options) ? data.options : [];
+
+  if (type === 'single_select') {
+    for (const opt of options) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'question-widget-option';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => submit(opt, opt));
+      body.appendChild(btn);
+    }
+    body.appendChild(buildOtherRow('Other…'));
+  } else if (type === 'multi_select') {
+    const checkboxes = [];
+    for (const opt of options) {
+      const label = document.createElement('label');
+      label.className = 'question-widget-checkbox-label';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = opt;
+      checkboxes.push(cb);
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(opt));
+      body.appendChild(label);
+    }
+    const otherInput = document.createElement('input');
+    otherInput.type = 'text';
+    otherInput.placeholder = 'Other (optional)…';
+    otherInput.className = 'question-widget-other-inline';
+    body.appendChild(otherInput);
+
+    const submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'question-widget-submit';
+    submitBtn.textContent = 'Submit';
+    submitBtn.addEventListener('click', () => {
+      const selected = checkboxes.filter((c) => c.checked).map((c) => c.value);
+      const other = otherInput.value.trim();
+      if (other) selected.push(other);
+      if (!selected.length) return;
+      const display = selected.join(', ');
+      submit(display, display);
+    });
+    body.appendChild(submitBtn);
+  } else {
+    // 'text', or an unrecognized type — a free-text prompt never silently drops the question.
+    body.appendChild(buildOtherRow('Type your answer…'));
+  }
+
+  return card;
+}
+
 function appendAssistantRow(turnMeta) {
   const result = appendMessageRow('assistant', lastProfile?.ceoName || 'your AI CEO', getCeoInitial(), '');
   if (turnMeta?.model) {
@@ -411,6 +646,7 @@ function appendAssistantRow(turnMeta) {
     badge.textContent = turnMeta.effort ? `${modelLabel} · ${turnMeta.effort}` : modelLabel;
     result.row.querySelector('.msg-meta').appendChild(badge);
   }
+  result.renderer = new AssistantContentRenderer(result.textEl);
   return result;
 }
 
@@ -437,8 +673,7 @@ async function streamChat(message, { showUserBubble }) {
   showTypingIndicator();
   setStatus('typing');
 
-  let assistantTextEl = null;
-  let assistantText = '';
+  let assistantRenderer = null;
   let sawContent = false;
   let turnMeta = null;
 
@@ -479,11 +714,10 @@ async function streamChat(message, { showUserBubble }) {
           hideTypingIndicator();
           sawContent = true;
         }
-        if (!assistantTextEl) {
-          assistantTextEl = appendAssistantRow(turnMeta).textEl;
+        if (!assistantRenderer) {
+          assistantRenderer = appendAssistantRow(turnMeta).renderer;
         }
-        assistantText += event.text;
-        assistantTextEl.innerHTML = renderMarkdown(assistantText);
+        assistantRenderer.push(event.text);
         el.messages.scrollTop = el.messages.scrollHeight;
       } else if (event.type === 'tool-use') {
         if (!sawContent) {
@@ -502,6 +736,7 @@ async function streamChat(message, { showUserBubble }) {
     }
   }
 
+  assistantRenderer?.finish();
   hideTypingIndicator();
   if (statusState !== 'offline') setStatus('online');
   await refreshProfileIfNeeded();
@@ -517,11 +752,18 @@ el.form.addEventListener('submit', async (e) => {
   if (!message) return;
   el.input.value = '';
   el.input.disabled = true;
+  el.sendButton.disabled = true;
   try {
     await streamChat(message, { showUserBubble: true });
   } finally {
-    el.input.disabled = false;
-    el.input.focus();
+    // A widget the model asked as part of this same turn may still be
+    // unanswered — setPendingWidget already owns disabling in that case,
+    // so only re-enable here if nothing is pending.
+    if (pendingWidgetCount === 0) {
+      el.input.disabled = false;
+      el.sendButton.disabled = false;
+      el.input.focus();
+    }
   }
 });
 

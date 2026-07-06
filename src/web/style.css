@@ -502,6 +502,131 @@ body {
   color: #e5484d;
 }
 
+.msg-text-segment:empty {
+  display: none;
+}
+
+.question-widget-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.88rem;
+  padding: 0.3rem 0;
+}
+
+.question-widget {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  margin: 0.5rem 0;
+  max-width: 420px;
+  background: var(--bg-subtle);
+}
+
+.question-widget-question {
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+  line-height: 1.4;
+}
+
+.question-widget-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.question-widget-option {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  text-align: left;
+  font-weight: 500;
+  padding: 0.55rem 0.8rem;
+}
+
+.question-widget-option:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.question-widget-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.question-widget-checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.question-widget-submit {
+  align-self: flex-start;
+}
+
+.question-widget-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.question-widget-row input {
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+}
+
+.question-widget-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.question-widget-row button {
+  flex-shrink: 0;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.question-widget-other {
+  margin-top: 0.15rem;
+}
+
+.question-widget-other-inline {
+  padding: 0.5rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+}
+
+.question-widget-other-inline:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.question-widget.answered {
+  background: transparent;
+}
+
+.question-widget-answer {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.question-widget-answer::before {
+  content: '✓ ';
+}
+
 #typing-indicator {
   display: flex;
   align-items: center;
