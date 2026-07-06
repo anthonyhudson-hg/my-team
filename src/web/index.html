@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>my-team</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main id="app">
+    <p id="loading">Checking Claude Code status&hellip;</p>
+
+    <section id="onboarding" hidden>
+      <h1>Set up Claude Code</h1>
+      <div id="onboarding-cli-missing" hidden>
+        <p>The Claude Code CLI binary couldn't be found or run.</p>
+        <p>Try installing it globally, then reload this page:</p>
+        <pre>npm install -g @anthropic-ai/claude-code</pre>
+      </div>
+      <div id="onboarding-not-authenticated" hidden>
+        <p>Claude Code isn't logged in yet. In a terminal, run:</p>
+        <pre>claude login</pre>
+        <p>Then come back here.</p>
+      </div>
+      <button id="check-again">Check again</button>
+    </section>
+
+    <section id="dashboard" hidden>
+      <header>
+        <span id="account-line"></span>
+      </header>
+      <div class="banner">
+        Tool actions (file edits, shell commands) are auto-approved by Claude's own safety classifier &mdash;
+        not reviewed by you turn-by-turn.
+      </div>
+      <div id="messages"></div>
+      <form id="chat-form">
+        <input id="chat-input" type="text" placeholder="Ask Claude about this repo&hellip;" autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
