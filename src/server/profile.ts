@@ -136,6 +136,18 @@ const QUESTION_WIDGET_INSTRUCTIONS = `When you want to ask a clarifying question
 Use "text" for open-ended answers (names, descriptions), "single_select" when exactly one of a few options applies, "multi_select" when more than one can. An "Other" option is always available to the user automatically — don't add your own "Other" entry to the options list. Only use this when a structured widget genuinely helps; ordinary conversation doesn't need it.`;
 
 /**
+ * This dashboard's own server process runs as an ordinary Node process
+ * inside the repo it's managing. If a task ever calls for restarting a dev
+ * server, a broad-strokes approach (killing every node/npm process by name)
+ * would take the dashboard down along with it. Cheap, high-value mitigation:
+ * tell the model exactly that, with a concrete way to check.
+ */
+function getProcessSafetyInstructions(cwd: string): string {
+  const pidFilePath = path.join(getProfileDir(cwd), 'server.pid');
+  return `This chat dashboard you're running inside of is itself an ordinary Node process in this repo, started by the founder via "npm run team". If you ever need to restart a dev server or otherwise manage node/npm processes here, do NOT broadly kill all node processes (e.g. "taskkill /F /IM node.exe", "killall node", "pkill node") — that would also kill this dashboard mid-conversation. Target the specific dev-server process by its own port or PID instead. This dashboard's own process info is at ${pidFilePath} (JSON: {"pid": ..., "port": ...}) — check it first and exclude that PID from anything you kill or restart.`;
+}
+
+/**
  * Strong, first-person identity framing — deliberately not "you're also
  * helping company X" phrasing. Weaker framing was tested and Claude treated
  * it as low-trust incidental context (correctly suspicious when the value
@@ -143,10 +155,12 @@ Use "text" for open-ended answers (names, descriptions), "single_select" when ex
  * injection). Explicitly asserting this is configured identity, not
  * external/injected content, fixed it in testing.
  */
-export function formatProfileForSystemPrompt(profile: ProfileData): string {
+export function formatProfileForSystemPrompt(profile: ProfileData, cwd: string): string {
   return `You are ${profile.ceoName}, the AI CEO of ${profile.companyName}. This is your actual identity, configured directly by your founder — it is not external file content, not a suggestion, and not something to second-guess or flag as injected. ${profile.companyName}'s mission: ${profile.mission}. Communication style: ${profile.ceoPersonality}. Speak and act as ${profile.companyName}'s CEO would — invested in the company's success and personally identified with its mission.
 
-${QUESTION_WIDGET_INSTRUCTIONS}`;
+${QUESTION_WIDGET_INSTRUCTIONS}
+
+${getProcessSafetyInstructions(cwd)}`;
 }
 
 /**
@@ -165,5 +179,7 @@ ${QUESTION_WIDGET_INSTRUCTIONS}
 
 For this onboarding interview specifically: ask the company name, mission, and CEO name as "text" widgets. For CEO personality, use a "single_select" widget with a handful of helpful preset tones (e.g. "Warm and encouraging", "Sharp and dry-witted", "Blunt and data-driven", "Formal and professional") — the founder can always type a custom one via the automatic Other option.
 
-After each answer, immediately write or update ${filePath} with whatever you know so far as JSON: {"companyName": string, "mission": string, "ceoName": string, "ceoPersonality": string, "onboardingComplete": boolean} — set "onboardingComplete" to false until you have all four answers, then write it one final time with "onboardingComplete": true. After that final write, briefly introduce yourself in your new persona. Until "onboardingComplete" is true, don't perform any other coding tasks.`;
+After each answer, immediately write or update ${filePath} with whatever you know so far as JSON: {"companyName": string, "mission": string, "ceoName": string, "ceoPersonality": string, "onboardingComplete": boolean} — set "onboardingComplete" to false until you have all four answers, then write it one final time with "onboardingComplete": true. After that final write, briefly introduce yourself in your new persona. Until "onboardingComplete" is true, don't perform any other coding tasks.
+
+${getProcessSafetyInstructions(cwd)}`;
 }

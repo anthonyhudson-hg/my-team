@@ -295,7 +295,12 @@ async function checkStatus() {
     selectPage('messages');
     checkForUpdateBanner(1);
 
-    if (!lastProfile?.onboardingComplete && !onboardingKickedOff) {
+    const hasHistory = await loadHistory();
+    // Only auto-kick off onboarding on a genuinely blank slate — if history
+    // replay already left an open, answerable widget (the conversation
+    // stopped mid-question last time), let the user respond to that instead
+    // of firing a second, duplicate kickoff on top of it.
+    if (!lastProfile?.onboardingComplete && !onboardingKickedOff && !hasHistory) {
       onboardingKickedOff = true;
       kickoffOnboarding();
     }
@@ -367,7 +372,7 @@ function renderMarkdown(text) {
   return html;
 }
 
-function appendMessageRow(kind, name, avatarText, text) {
+function appendMessageRow(kind, name, avatarText, text, tsOverride) {
   const row = document.createElement('div');
   row.className = `msg-row ${kind}`;
 
@@ -383,7 +388,8 @@ function appendMessageRow(kind, name, avatarText, text) {
   meta.textContent = name;
   const time = document.createElement('span');
   time.className = 'msg-time';
-  time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const d = tsOverride ? new Date(tsOverride) : new Date();
+  time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   meta.appendChild(time);
 
   const textEl = document.createElement('div');
@@ -399,8 +405,8 @@ function appendMessageRow(kind, name, avatarText, text) {
   return { row, textEl };
 }
 
-function appendUserMessage(text) {
-  appendMessageRow('user', 'You', 'Y', text);
+function appendUserMessage(text, ts) {
+  appendMessageRow('user', 'You', 'Y', text, ts);
 }
 
 let pendingWidgetCount = 0;
@@ -510,7 +516,7 @@ class AssistantContentRenderer {
       if (answered) return;
       answered = true;
       setPendingWidget(-1);
-      streamChat(messageText, { showUserBubble: false });
+      streamChat(messageText, { showUserBubble: false, isWidgetAnswer: true });
     });
     this.widgetPlaceholderEl.replaceWith(widgetEl);
     this.widgetPlaceholderEl = null;
@@ -539,7 +545,11 @@ class AssistantContentRenderer {
   }
 }
 
-function createQuestionWidget(data, onAnswer) {
+// lockedAnswer renders the widget immediately in its answered state with no
+// interactive controls — used when replaying history, since the underlying
+// SDK session has already moved past that turn and re-answering it live
+// would be meaningless (or worse, confusing) rather than just cosmetic.
+function createQuestionWidget(data, onAnswer, lockedAnswer) {
   const card = document.createElement('div');
   card.className = 'question-widget';
 
@@ -559,7 +569,12 @@ function createQuestionWidget(data, onAnswer) {
     answerEl.className = 'question-widget-answer';
     answerEl.textContent = displayText;
     body.appendChild(answerEl);
-    onAnswer(messageText ?? displayText);
+    if (onAnswer) onAnswer(messageText ?? displayText);
+  }
+
+  if (lockedAnswer != null) {
+    submit(lockedAnswer, lockedAnswer);
+    return card;
   }
 
   function buildOtherRow(placeholder) {
@@ -650,12 +665,127 @@ function appendAssistantRow(turnMeta) {
   return result;
 }
 
-function appendToolMessage(name) {
-  appendMessageRow('tool', 'System', '⚙', `Using tool: ${name}`);
+function appendToolMessage(name, ts) {
+  appendMessageRow('tool', 'System', '⚙', `Using tool: ${name}`, ts);
 }
 
-function appendErrorMessage(message) {
-  appendMessageRow('error', 'Error', '!', message);
+function appendErrorMessage(message, ts) {
+  appendMessageRow('error', 'Error', '!', message, ts);
+}
+
+// One-shot counterpart to AssistantContentRenderer for replaying a
+// message whose full text is already known (history) rather than
+// streaming in — a single regex pass is fine here since there's no
+// "flash of raw JSON" or "wipe answered state" risk on a fully-formed string.
+// liveOnAnswer is only passed for a trailing, never-answered widget at the
+// very end of history (the conversation was interrupted — e.g. server
+// restarted — before the founder responded). That one genuinely needs to
+// keep working exactly like a live pending widget, composer gating
+// included, rather than being either dead-looking (locked) or clickable but
+// silently doing nothing (no answer handler).
+function renderStaticAssistantText(container, fullText, lockedAnswer, liveOnAnswer) {
+  const re = /```question-widget\s*\n([\s\S]*?)\n```/;
+  const match = fullText.match(re);
+  if (!match) {
+    const seg = document.createElement('div');
+    seg.className = 'msg-text-segment';
+    seg.innerHTML = renderMarkdown(fullText);
+    container.appendChild(seg);
+    return;
+  }
+
+  const before = fullText.slice(0, match.index);
+  const after = fullText.slice(match.index + match[0].length);
+
+  if (before.trim()) {
+    const seg = document.createElement('div');
+    seg.className = 'msg-text-segment';
+    seg.innerHTML = renderMarkdown(before);
+    container.appendChild(seg);
+  }
+
+  let data = null;
+  try {
+    data = JSON.parse(match[1]);
+  } catch {
+    const seg = document.createElement('div');
+    seg.className = 'msg-text-segment';
+    seg.textContent = match[1].trim();
+    container.appendChild(seg);
+  }
+  if (data) {
+    if (lockedAnswer != null) {
+      container.appendChild(createQuestionWidget(data, null, lockedAnswer));
+    } else if (liveOnAnswer) {
+      setPendingWidget(1);
+      let answered = false;
+      const widgetEl = createQuestionWidget(data, (messageText) => {
+        if (answered) return;
+        answered = true;
+        setPendingWidget(-1);
+        liveOnAnswer(messageText);
+      });
+      container.appendChild(widgetEl);
+    } else {
+      // Shouldn't normally happen (an unanswered widget anywhere but the
+      // last entry would mean the conversation continued without it ever
+      // being answered) — render inert rather than a dead-looking control.
+      container.appendChild(createQuestionWidget(data, null, '(not answered)'));
+    }
+  }
+
+  if (after.trim()) {
+    const seg = document.createElement('div');
+    seg.className = 'msg-text-segment';
+    seg.innerHTML = renderMarkdown(after);
+    container.appendChild(seg);
+  }
+}
+
+async function loadHistory() {
+  const res = await api('/api/chat/history');
+  const { history } = await res.json();
+
+  for (let i = 0; i < history.length; i++) {
+    const entry = history[i];
+    if (entry.kind === 'user') {
+      appendUserMessage(entry.text, entry.ts);
+    } else if (entry.kind === 'widget-answer') {
+      // Consumed by the preceding assistant entry's widget below — a live
+      // widget answer never gets its own bubble either.
+      continue;
+    } else if (entry.kind === 'tool') {
+      appendToolMessage(entry.name, entry.ts);
+    } else if (entry.kind === 'error') {
+      appendErrorMessage(entry.message, entry.ts);
+    } else if (entry.kind === 'assistant') {
+      const { row, textEl } = appendMessageRow(
+        'assistant',
+        lastProfile?.ceoName || 'your AI CEO',
+        getCeoInitial(),
+        '',
+        entry.ts,
+      );
+      if (entry.model) {
+        const badge = document.createElement('span');
+        badge.className = 'msg-model-badge';
+        const modelLabel = modelDisplayName(entry.model);
+        badge.textContent = entry.effort ? `${modelLabel} · ${entry.effort}` : modelLabel;
+        row.querySelector('.msg-meta').appendChild(badge);
+      }
+      const next = history[i + 1];
+      const lockedAnswer = next?.kind === 'widget-answer' ? next.text : null;
+      const isTrailingUnanswered = i === history.length - 1 && !lockedAnswer;
+      renderStaticAssistantText(
+        textEl,
+        entry.text,
+        lockedAnswer,
+        isTrailingUnanswered ? (messageText) => streamChat(messageText, { showUserBubble: false, isWidgetAnswer: true }) : null,
+      );
+    }
+  }
+
+  return history.length > 0;
 }
 
 function showTypingIndicator() {
@@ -668,7 +798,7 @@ function hideTypingIndicator() {
   el.typingIndicator.hidden = true;
 }
 
-async function streamChat(message, { showUserBubble }) {
+async function streamChat(message, { showUserBubble, isWidgetAnswer }) {
   if (showUserBubble) appendUserMessage(message);
   showTypingIndicator();
   setStatus('typing');
@@ -680,7 +810,12 @@ async function streamChat(message, { showUserBubble }) {
   const res = await api('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, model: el.chatModelSelect.value, effort: el.chatEffortSelect.value }),
+    body: JSON.stringify({
+      message,
+      model: el.chatModelSelect.value,
+      effort: el.chatEffortSelect.value,
+      isWidgetAnswer: isWidgetAnswer === true,
+    }),
   });
 
   if (!res.ok || !res.body) {

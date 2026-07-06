@@ -1,4 +1,5 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { appendHistory } from './chat-history.js';
 import { sanitizeEnv } from './env.js';
 import { forLog, type Logger } from './logger.js';
 import { formatProfileForSystemPrompt, getOnboardingSystemPrompt, readProfile } from './profile.js';
@@ -13,12 +14,16 @@ export type ChatEvent =
 export interface ChatTurnOverrides {
   model?: string;
   effort?: string;
+  /** True when this message is a question-widget answer, not free-typed text — recorded distinctly so history replay can lock the widget instead of showing a duplicate bubble. */
+  isWidgetAnswer?: boolean;
 }
 
 /**
- * One ongoing SDK session per running server process. Conversation history
- * lives only in the CLI's own session store (resumed via session_id) — no
- * disk persistence of our own, lost on server restart (acceptable for v1).
+ * One ongoing SDK session per running server process. Claude's own
+ * conversation context survives via `resume`; the *visible* transcript is
+ * additionally persisted to chat-history.jsonl (see chat-history.ts) so a
+ * page reload or a full server restart both show prior messages instead of
+ * an empty thread.
  */
 export class ChatSession {
   private sessionId: string | undefined;
@@ -36,11 +41,16 @@ export class ChatSession {
       return;
     }
     this.turnInFlight = true;
+    const ts = new Date().toISOString();
+    await appendHistory(cwd, { kind: overrides.isWidgetAnswer ? 'widget-answer' : 'user', text: message, ts });
+    let assistantText = '';
+    let resultModel = '';
+    let resultEffort = '';
     try {
       const profile = await readProfile(cwd);
       const onboarded = profile?.onboardingComplete === true;
       const systemPromptAppend = onboarded
-        ? formatProfileForSystemPrompt(profile)
+        ? formatProfileForSystemPrompt(profile, cwd)
         : getOnboardingSystemPrompt(cwd);
       // Per-message override wins, then the CEO's configured default, then no
       // override at all (Claude Code picks its own default).
@@ -68,10 +78,13 @@ export class ChatSession {
           // report what we requested (the UI only ever offers effort levels
           // the chosen model's own supportedEffortLevels confirms are valid,
           // so a silent downgrade in practice shouldn't occur).
+          resultModel = msg.model;
+          resultEffort = effort ?? '';
           yield { type: 'meta', sessionId: msg.session_id, model: msg.model, effort: effort ?? '' };
         } else if (msg.type === 'stream_event') {
           const event = msg.event;
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            assistantText += event.delta.text;
             yield { type: 'text-delta', text: event.delta.text };
           }
         } else if (msg.type === 'assistant') {
@@ -79,18 +92,30 @@ export class ChatSession {
           // calls are new information here (tool inputs don't render usefully).
           for (const block of msg.message.content) {
             if (block.type === 'tool_use') {
+              await appendHistory(cwd, { kind: 'tool', name: block.name, ts: new Date().toISOString() });
               yield { type: 'tool-use', name: block.name };
             }
           }
         } else if (msg.type === 'result') {
           if (msg.subtype !== 'success') {
+            await appendHistory(cwd, { kind: 'error', message: msg.subtype, ts: new Date().toISOString() });
             yield { type: 'error', message: msg.subtype };
           }
           yield { type: 'done' };
         }
       }
+      if (assistantText) {
+        await appendHistory(cwd, {
+          kind: 'assistant',
+          text: assistantText,
+          model: resultModel,
+          effort: resultEffort,
+          ts: new Date().toISOString(),
+        });
+      }
     } catch (err) {
       this.logger.log({ type: 'chat-error', error: String((err as Error)?.message ?? err), stack: (err as Error)?.stack });
+      await appendHistory(cwd, { kind: 'error', message: String((err as Error)?.message ?? err), ts: new Date().toISOString() });
       yield { type: 'error', message: String((err as Error)?.message ?? err) };
     } finally {
       this.turnInFlight = false;

@@ -50,6 +50,14 @@ Every raw request sent to the Claude Agent SDK (including the exact system promp
 
 When Iris (or your CEO) wants a structured answer rather than free text, it asks via a real inline widget — text input, single-select, or multi-select (with an automatic "Other" option) — instead of plain prose. This is a text convention the model follows (a fenced `question-widget` block the frontend parses out of the stream and replaces with an interactive card), not an MCP tool call: a real custom-tool + elicitation round trip was tested directly against the installed SDK and confirmed not to work yet (Claude Code's MCP-client role doesn't currently declare elicitation capability), so this achieves the same UX without that dependency. The main composer is disabled while a widget is awaiting an answer.
 
+## Chat history
+
+The visible conversation — not just Claude's own session context — is persisted to `.my-team/chat-history.jsonl` and replayed on load, so both a page reload and a full server restart show prior messages instead of starting over. A widget that was already answered replays locked to that answer; a widget left unanswered when the server stopped (e.g. it was killed mid-conversation) replays as a genuinely live, answerable widget, composer gating included, picking up exactly where things left off. Unlike `profile.json`, this file is gitignored automatically (it can contain arbitrary conversation content) — `init` sets this up, and a plain `npm run team` self-heals the `.gitignore` too, so upgrading an existing install doesn't require re-running `init`.
+
+## Staying out of its own way
+
+This dashboard is itself an ordinary Node process running inside the repo it manages. If your CEO ever needs to restart a dev server, broadly killing every node process (`taskkill /F /IM node.exe`, `killall node`) would take the dashboard down with it — so the system prompt explicitly warns against that and points at `.my-team/server.pid` (also gitignored) to identify and exclude the dashboard's own process. The server also logs and continues past uncaught exceptions rather than crashing the whole session.
+
 ## Status
 
-v1.5: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets. No persisted chat history across restarts, no multi-user support, no `#general` backend (sidebar placeholder only).
+v1.6: CLI-auth onboarding + conversational company/CEO-persona onboarding + Slack-style chat shell with real streaming + per-message model/effort selection + update checker + structured logging + inline clarifying-question widgets + persisted chat history + dev-server-restart safety guardrail. No multi-user support, no `#general` backend (sidebar placeholder only).

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { OWN_PACKAGE_NAME } from '../own-package.js';
 import { npmInstall } from '../npm-install.js';
 import { checkAuth } from './auth-check.js';
+import { readHistory } from './chat-history.js';
 import { ChatSession } from './chat-session.js';
 import type { Logger } from './logger.js';
 import { readProfile, validateProfileInput, writeProfile } from './profile.js';
@@ -104,6 +105,12 @@ export function createServer(options: CreateServerOptions): http.Server {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/chat/history') {
+      const history = await readHistory(cwd);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ history }));
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/profile') {
       const profile = await readProfile(cwd);
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ profile }));
@@ -136,11 +143,13 @@ export function createServer(options: CreateServerOptions): http.Server {
       let message: string;
       let model: string | undefined;
       let effort: string | undefined;
+      let isWidgetAnswer: boolean;
       try {
         const body = await readJsonBody(req);
         message = String(body.message ?? '');
         model = typeof body.model === 'string' && body.model ? body.model : undefined;
         effort = typeof body.effort === 'string' && body.effort ? body.effort : undefined;
+        isWidgetAnswer = body.isWidgetAnswer === true;
       } catch {
         res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'invalid body' }));
         return;
@@ -155,7 +164,7 @@ export function createServer(options: CreateServerOptions): http.Server {
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
       });
-      for await (const event of chatSession.sendTurn(message, cwd, { model, effort })) {
+      for await (const event of chatSession.sendTurn(message, cwd, { model, effort, isWidgetAnswer })) {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
       res.end();
